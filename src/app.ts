@@ -3,9 +3,49 @@ import { swagger } from '@elysiajs/swagger';
 import { logger } from './core/logger';
 import { DomainError } from './core/errors';
 import { randomUUID } from 'crypto';
+import { authRoutes } from './modules/auth/presentation/routes';
+import { userRoutes } from './modules/users/presentation/routes';
+import { buildingRoutes } from './modules/buildings/presentation/routes';
+import { paymentRoutes } from './modules/payments/presentation/routes';
+import { dashboardRoutes } from './modules/dashboard/presentation/routes';
 
 export const app = new Elysia()
-    .use(swagger())
+    .use(swagger({
+        documentation: {
+            info: {
+                title: 'Condominio API',
+                version: '1.0.0',
+                description: 'Backend API for Condominio mobile application'
+            },
+            tags: [
+                { name: 'Auth', description: 'Authentication endpoints' },
+                { name: 'Users', description: 'User profile management' },
+                { name: 'Buildings', description: 'Building information' },
+                { name: 'Payments', description: 'Payment management' },
+                { name: 'Dashboard', description: 'Dashboard and solvency' }
+            ],
+            components: {
+                securitySchemes: {
+                    BearerAuth: {
+                        type: 'http',
+                        scheme: 'bearer',
+                        bearerFormat: 'JWT',
+                        description: 'Enter your JWT token from /auth/login'
+                    }
+                }
+            },
+            security: [
+                {
+                    BearerAuth: []
+                }
+            ]
+        }
+    }))
+    .use(authRoutes)
+    .use(userRoutes)
+    .use(buildingRoutes)
+    .use(paymentRoutes)
+    .use(dashboardRoutes)
     .derive(({ request }) => {
         return {
             requestId: request.headers.get('x-request-id') || randomUUID()
@@ -49,7 +89,9 @@ export const app = new Elysia()
             return {
                 code: 'VALIDATION_ERROR',
                 // @ts-ignore
-                message: error.validator?.Errors(error.value).next().value || error.message
+                message: 'Validation Error',
+                // @ts-ignore
+                details: error.all
             }
         }
 
