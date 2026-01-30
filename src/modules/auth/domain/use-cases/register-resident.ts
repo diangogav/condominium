@@ -1,4 +1,4 @@
-import { IAuthRepository } from '../repository';
+import { IAuthRepository, AuthSession } from '../repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
 import { User } from '@/modules/users/domain/entities/User'; // Updated import
 import { UserRole, UserStatus } from '@/core/domain/enums';
@@ -17,13 +17,11 @@ export class RegisterResident {
         private userRepo: IUserRepository
     ) { }
 
-    async execute(request: RegisterRequest): Promise<User> {
+    async execute(request: RegisterRequest): Promise<AuthSession> {
         // 1. Create Auth User in Supabase
         const authUser = await this.authRepo.signUp(request.email, request.password);
 
         // 2. Create Public Profile
-        // Note: Ideally this should be transactional or handled via Supabase Triggers, 
-        // but for this implementation we do it explicitly as requested.
         const user = new User({
             id: authUser.id,
             email: request.email,
@@ -34,7 +32,10 @@ export class RegisterResident {
             status: UserStatus.PENDING
         });
 
-        return await this.userRepo.create(user);
+        await this.userRepo.create(user);
+
+        // 3. Auto-login to return session
+        return await this.authRepo.signIn(request.email, request.password);
     }
 }
 

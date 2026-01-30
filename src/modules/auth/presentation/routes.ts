@@ -1,11 +1,11 @@
 import { Elysia, t } from 'elysia';
-import { AuthRepository } from '../data/auth-repository';
+import { SupabaseAuthRepository } from '../infrastructure/repositories/SupabaseAuthRepository';
 import { SupabaseUserRepository } from '@/modules/users/infrastructure/repositories/SupabaseUserRepository';
 import { RegisterResident } from '../domain/use-cases/register-resident';
 import { LoginUser } from '../domain/use-cases/login-user';
 
 // Setup dependencies (Manual DI for simplicity in this scale)
-const authRepo = new AuthRepository();
+const authRepo = new SupabaseAuthRepository();
 const userRepo = new SupabaseUserRepository();
 const registerResidentUseCase = new RegisterResident(authRepo, userRepo);
 const loginUserUseCase = new LoginUser(authRepo, userRepo);

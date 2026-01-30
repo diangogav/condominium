@@ -1,8 +1,8 @@
-import { IAuthRepository, AuthSession } from '../domain/repository';
+import { IAuthRepository, AuthSession } from '../../domain/repository';
 import { supabase } from '@/infrastructure/supabase';
 import { DomainError, UnauthorizedError, ValidationError } from '@/core/errors';
 
-export class AuthRepository implements IAuthRepository {
+export class SupabaseAuthRepository implements IAuthRepository {
     async signUp(email: string, password: string): Promise<{ id: string; email?: string }> {
         const { data, error } = await supabase.auth.signUp({
             email,
