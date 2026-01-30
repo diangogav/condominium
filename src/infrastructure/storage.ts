@@ -30,6 +30,11 @@ export class StorageService {
         return urlData.publicUrl;
     }
 
+    // Alias for uploadProof
+    async uploadPaymentProof(file: File, userId: string): Promise<string> {
+        return this.uploadProof(file, userId);
+    }
+
     async deleteProof(url: string): Promise<void> {
         // Extract path from URL
         const path = url.split(`${this.bucketName}/`)[1];

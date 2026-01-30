@@ -1,14 +1,33 @@
-import type { SolvencyStatus, DashboardSummary } from '../entities';
-import type { IPaymentRepository } from '@/modules/payments/domain/repository';
-import type { IUserRepository } from '@/modules/users/domain/repository';
+import { IPaymentRepository } from '../../domain/repository';
+import { IUserRepository } from '@/modules/users/domain/repository';
+import { SolvencyStatus, PaymentStatus } from '@/core/domain/enums';
+import { NotFoundError } from '@/core/errors';
+import { Payment } from '../../domain/entities/Payment';
 
-export class CalculateSolvency {
+export interface PaymentSummaryDTO {
+    solvency_status: SolvencyStatus;
+    last_payment_date: string | null;
+    pending_periods: string[];
+    paid_periods: string[];
+    recent_transactions: PaymentTransactionDTO[];
+}
+
+export interface PaymentTransactionDTO {
+    id: string;
+    amount: number;
+    payment_date: string;
+    method: string;
+    status: string;
+    period?: string;
+}
+
+export class GetPaymentSummary {
     constructor(
         private paymentRepo: IPaymentRepository,
         private userRepo: IUserRepository
     ) { }
 
-    async execute(userId: string): Promise<DashboardSummary> {
+    async execute(userId: string): Promise<PaymentSummaryDTO> {
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1; // 1-12
@@ -16,7 +35,7 @@ export class CalculateSolvency {
         // Get user to determine billing start date
         const user = await this.userRepo.findById(userId);
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundError('User not found');
         }
 
         const userCreatedAt = new Date(user.created_at);
@@ -27,7 +46,7 @@ export class CalculateSolvency {
         const payments = await this.paymentRepo.findByUserId(userId, currentYear);
 
         // Get approved payments only
-        const approvedPayments = payments.filter(p => p.status === 'APPROVED');
+        const approvedPayments = payments.filter(p => p.isApproved());
 
         // Calculate which months have been paid
         const paidMonths = new Set<string>();
@@ -60,7 +79,7 @@ export class CalculateSolvency {
         }
 
         // Calculate solvency status
-        let solvencyStatus: SolvencyStatus = 'SOLVENT';
+        let solvencyStatus: SolvencyStatus = SolvencyStatus.SOLVENT;
 
         if (pendingPeriods.length > 0) {
             // Check if current month is pending
@@ -71,13 +90,13 @@ export class CalculateSolvency {
                 // Only current month pending - check if within grace period (5 days)
                 const dayOfMonth = now.getDate();
                 if (dayOfMonth <= 5) {
-                    solvencyStatus = 'SOLVENT'; // Within grace period
+                    solvencyStatus = SolvencyStatus.SOLVENT; // Within grace period
                 } else {
-                    solvencyStatus = 'PENDING';
+                    solvencyStatus = SolvencyStatus.PENDING;
                 }
             } else if (pendingPeriods.length > 1 || !isCurrentMonthPending) {
                 // Multiple months pending or past months pending
-                solvencyStatus = 'OVERDUE';
+                solvencyStatus = SolvencyStatus.OVERDUE;
             }
         }
 
@@ -87,7 +106,7 @@ export class CalculateSolvency {
             : null;
 
         // Get recent transactions (last 5)
-        const recentTransactions = payments.slice(0, 5).map(p => ({
+        const recentTransactions: PaymentTransactionDTO[] = payments.slice(0, 5).map(p => ({
             id: p.id,
             amount: p.amount,
             payment_date: p.payment_date.toISOString(),

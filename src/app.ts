@@ -8,7 +8,6 @@ import { authRoutes } from './modules/auth/presentation/routes';
 import { userRoutes } from './modules/users/presentation/routes';
 import { buildingRoutes } from './modules/buildings/presentation/routes';
 import { paymentRoutes } from './modules/payments/presentation/routes';
-import { dashboardRoutes } from './modules/dashboard/presentation/routes';
 
 export const app = new Elysia()
     .use(cors({
@@ -28,8 +27,7 @@ export const app = new Elysia()
                 { name: 'Auth', description: 'Authentication endpoints' },
                 { name: 'Users', description: 'User profile management' },
                 { name: 'Buildings', description: 'Building information' },
-                { name: 'Payments', description: 'Payment management' },
-                { name: 'Dashboard', description: 'Dashboard and solvency' }
+                { name: 'Payments', description: 'Payment management' }
             ],
             components: {
                 securitySchemes: {
@@ -52,7 +50,6 @@ export const app = new Elysia()
     .use(userRoutes)
     .use(buildingRoutes)
     .use(paymentRoutes)
-    .use(dashboardRoutes)
     .derive(({ request }) => {
         return {
             requestId: request.headers.get('x-request-id') || randomUUID()
