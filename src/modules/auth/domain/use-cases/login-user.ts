@@ -1,8 +1,8 @@
 import { IAuthRepository, AuthSession } from '../repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
-import { User } from '@/modules/users/domain/entities';
+import { User } from '@/modules/users/domain/entities/User';
 
-interface LoginResponse {
+export interface LoginResponse {
     token: AuthSession;
     user: User;
 }

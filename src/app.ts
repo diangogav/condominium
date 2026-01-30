@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { swagger } from '@elysiajs/swagger';
+import { cors } from '@elysiajs/cors';
 import { logger } from './core/logger';
 import { DomainError } from './core/errors';
 import { randomUUID } from 'crypto';
@@ -10,6 +11,12 @@ import { paymentRoutes } from './modules/payments/presentation/routes';
 import { dashboardRoutes } from './modules/dashboard/presentation/routes';
 
 export const app = new Elysia()
+    .use(cors({
+        origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    }))
     .use(swagger({
         documentation: {
             info: {

@@ -1,10 +1,10 @@
-import { IUserRepository, FindAllUsersFilters } from '../domain/repository';
-import { User, UserProps } from '../domain/entities/User';
+import { IUserRepository, FindAllUsersFilters } from '../../domain/repository';
+import { User, UserProps } from '../../domain/entities/User';
 import { supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 import { UserRole, UserStatus } from '@/core/domain/enums';
 
-export class UserRepository implements IUserRepository {
+export class SupabaseUserRepository implements IUserRepository {
     private toDomain(data: any): User {
         const props: UserProps = {
             id: data.id,
@@ -14,7 +14,7 @@ export class UserRepository implements IUserRepository {
             unit: data.unit,
             building_id: data.building_id,
             role: data.role as UserRole,
-            status: data.status as UserStatus || UserStatus.PENDING,
+            status: data.status as UserStatus || UserStatus.PENDING, // Default to PENDING if not set
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
         };
@@ -32,13 +32,14 @@ export class UserRepository implements IUserRepository {
             role: user.role,
             status: user.status,
             updated_at: user.updated_at,
+            // created_at is usually handled by DB default or only on insert
         };
     }
 
     async create(user: User): Promise<User> {
         const persistenceData = {
             ...this.toPersistence(user),
-            created_at: user.created_at,
+            created_at: user.created_at, // Explicitly set for new users if needed
         };
 
         const { data, error } = await supabase
@@ -62,7 +63,7 @@ export class UserRepository implements IUserRepository {
             .single();
 
         if (error) {
-            if (error.code === 'PGRST116') return null;
+            if (error.code === 'PGRST116') return null; // Not found
             throw new DomainError('Error fetching user profile', 'DB_ERROR', 500);
         }
 
@@ -86,7 +87,7 @@ export class UserRepository implements IUserRepository {
 
     async update(user: User): Promise<User> {
         const persistenceData = this.toPersistence(user);
-
+        // Exclude immutable fields if necessary, but update usually handles what you pass
         const { data, error } = await supabase
             .from('profiles')
             .update(persistenceData)

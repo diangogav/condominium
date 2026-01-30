@@ -4,6 +4,7 @@ import { StorageService } from '@/infrastructure/storage';
 
 interface ReportPaymentRequest {
     user_id: string;
+    building_id?: string; // Add building_id
     amount: number;
     payment_date: Date;
     method: PaymentMethod;
@@ -33,6 +34,7 @@ export class ReportPayment {
         // Create payment record
         const payment = await this.paymentRepo.create({
             user_id: request.user_id,
+            building_id: request.building_id, // Pass building_id
             amount: request.amount,
             payment_date: request.payment_date,
             method: request.method,

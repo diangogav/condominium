@@ -10,6 +10,7 @@ export class PaymentRepository implements IPaymentRepository {
             .from('payments')
             .insert({
                 user_id: props.user_id,
+                building_id: props.building_id, // Add building_id to insert
                 amount: props.amount,
                 payment_date: props.payment_date,
                 method: props.method,
@@ -76,6 +77,26 @@ export class PaymentRepository implements IPaymentRepository {
 
         return data.map((p: any) => ({
             ...p,
+            payment_date: new Date(p.payment_date),
+            created_at: p.created_at ? new Date(p.created_at) : undefined,
+            updated_at: p.updated_at ? new Date(p.updated_at) : undefined
+        })) as Payment[];
+    }
+
+    async findByBuildingId(buildingId: string): Promise<Payment[]> {
+        const { data, error } = await supabase
+            .from('payments')
+            .select('*, user:profiles(id, name, unit)')
+            .eq('building_id', buildingId)
+            .order('payment_date', { ascending: false });
+
+        if (error) {
+            throw new DomainError('Error fetching payments by building', 'DB_ERROR', 500);
+        }
+
+        return data.map((p: any) => ({
+            ...p,
+            user: p.user, // Join result
             payment_date: new Date(p.payment_date),
             created_at: p.created_at ? new Date(p.created_at) : undefined,
             updated_at: p.updated_at ? new Date(p.updated_at) : undefined

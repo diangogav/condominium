@@ -1,6 +1,7 @@
 import { IAuthRepository } from '../repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
-import { User } from '@/modules/users/domain/entities';
+import { User } from '@/modules/users/domain/entities/User'; // Updated import
+import { UserRole, UserStatus } from '@/core/domain/enums';
 
 interface RegisterRequest {
     name: string;
@@ -23,14 +24,18 @@ export class RegisterResident {
         // 2. Create Public Profile
         // Note: Ideally this should be transactional or handled via Supabase Triggers, 
         // but for this implementation we do it explicitly as requested.
-        const user = await this.userRepo.create({
+        const user = new User({
             id: authUser.id,
             email: request.email,
             name: request.name,
             unit: request.unit,
-            building_id: request.building_id
+            building_id: request.building_id,
+            role: UserRole.RESIDENT,
+            status: UserStatus.PENDING
         });
 
-        return user;
+        return await this.userRepo.create(user);
     }
 }
+
+
