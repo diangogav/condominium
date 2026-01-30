@@ -60,7 +60,7 @@ export class PaymentRepository implements IPaymentRepository {
             .from('payments')
             .select('*')
             .eq('user_id', userId)
-            .order('payment_date', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (year) {
             const startDate = `${year}-01-01`;
