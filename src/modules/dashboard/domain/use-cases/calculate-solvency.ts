@@ -100,6 +100,7 @@ export class CalculateSolvency {
             solvency_status: solvencyStatus,
             last_payment_date: lastPaymentDate,
             pending_periods: pendingPeriods,
+            paid_periods: Array.from(paidMonths),
             recent_transactions: recentTransactions
         };
     }

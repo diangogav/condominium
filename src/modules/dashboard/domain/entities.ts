@@ -4,6 +4,7 @@ export interface DashboardSummary {
     solvency_status: SolvencyStatus;
     last_payment_date: string | null;
     pending_periods: string[];
+    paid_periods: string[];
     recent_transactions: PaymentSummary[];
 }
 
