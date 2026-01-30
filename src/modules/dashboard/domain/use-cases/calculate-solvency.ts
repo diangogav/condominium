@@ -1,13 +1,27 @@
 import type { SolvencyStatus, DashboardSummary } from '../entities';
 import type { IPaymentRepository } from '@/modules/payments/domain/repository';
+import type { IUserRepository } from '@/modules/users/domain/repository';
 
 export class CalculateSolvency {
-    constructor(private paymentRepo: IPaymentRepository) { }
+    constructor(
+        private paymentRepo: IPaymentRepository,
+        private userRepo: IUserRepository
+    ) { }
 
     async execute(userId: string): Promise<DashboardSummary> {
         const now = new Date();
         const currentYear = now.getFullYear();
         const currentMonth = now.getMonth() + 1; // 1-12
+
+        // Get user to determine billing start date
+        const user = await this.userRepo.findById(userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const userCreatedAt = new Date(user.created_at);
+        const startYear = userCreatedAt.getFullYear();
+        const startMonth = userCreatedAt.getMonth() + 1; // 1-12
 
         // Get all payments for current year
         const payments = await this.paymentRepo.findByUserId(userId, currentYear);
@@ -23,12 +37,25 @@ export class CalculateSolvency {
             }
         });
 
-        // Determine pending periods (months not paid yet)
+        // Determine pending periods (only months since user registration)
         const pendingPeriods: string[] = [];
-        for (let month = 1; month <= currentMonth; month++) {
-            const period = `${currentYear}-${String(month).padStart(2, '0')}`;
-            if (!paidMonths.has(period)) {
-                pendingPeriods.push(period);
+
+        // Only check current year if user was created this year
+        if (startYear === currentYear) {
+            // Start from registration month
+            for (let month = startMonth; month <= currentMonth; month++) {
+                const period = `${currentYear}-${String(month).padStart(2, '0')}`;
+                if (!paidMonths.has(period)) {
+                    pendingPeriods.push(period);
+                }
+            }
+        } else {
+            // User registered in previous year, check all months of current year
+            for (let month = 1; month <= currentMonth; month++) {
+                const period = `${currentYear}-${String(month).padStart(2, '0')}`;
+                if (!paidMonths.has(period)) {
+                    pendingPeriods.push(period);
+                }
             }
         }
 

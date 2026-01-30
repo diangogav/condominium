@@ -1,11 +1,13 @@
 import { Elysia } from 'elysia';
 import { PaymentRepository } from '@/modules/payments/data/payment-repository';
+import { UserRepository } from '@/modules/users/data/user-repository';
 import { CalculateSolvency } from '../domain/use-cases/calculate-solvency';
 import { supabase } from '@/infrastructure/supabase';
 import { UnauthorizedError } from '@/core/errors';
 
 const paymentRepo = new PaymentRepository();
-const calculateSolvencyUseCase = new CalculateSolvency(paymentRepo);
+const userRepo = new UserRepository();
+const calculateSolvencyUseCase = new CalculateSolvency(paymentRepo, userRepo);
 
 export const dashboardRoutes = new Elysia({ prefix: '/dashboard' })
     .derive(async ({ request }) => {
