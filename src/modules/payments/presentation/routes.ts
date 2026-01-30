@@ -62,7 +62,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         const payment = await reportPaymentUseCase.execute({
             user_id: userId,
-            amount: body.amount,
+            amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
             payment_date: new Date(body.date),
             method: body.method,
             reference: body.reference,
@@ -74,7 +74,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         return payment;
     }, {
         body: t.Object({
-            amount: t.Number({ minimum: 0, examples: [50.00, 75.50, 100] }),
+            amount: t.Union([t.Number(), t.String()], { minimum: 0, examples: [50.00, '75.50', 100] }),
             date: t.String({ examples: ['2026-01-15', '2026-01-29'] }),
             method: t.Union([
                 t.Literal('PAGO_MOVIL'),
