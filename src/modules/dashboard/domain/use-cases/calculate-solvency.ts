@@ -56,14 +56,14 @@ export class CalculateSolvency {
 
         // Get last payment date
         const lastPaymentDate = approvedPayments.length > 0
-            ? approvedPayments[0].payment_date.toISOString().split('T')[0]
+            ? approvedPayments[0].payment_date.toISOString()
             : null;
 
         // Get recent transactions (last 5)
         const recentTransactions = payments.slice(0, 5).map(p => ({
             id: p.id,
             amount: p.amount,
-            payment_date: p.payment_date.toISOString().split('T')[0],
+            payment_date: p.payment_date.toISOString(),
             method: p.method,
             status: p.status,
             period: p.period

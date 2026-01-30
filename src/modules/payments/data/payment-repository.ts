@@ -1,11 +1,12 @@
 import type { IPaymentRepository } from '../domain/repository';
 import type { Payment, CreatePaymentProps } from '../domain/entities';
-import { supabase } from '@/infrastructure/supabase';
+import { supabase, supabaseAdmin } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class PaymentRepository implements IPaymentRepository {
     async create(props: CreatePaymentProps): Promise<Payment> {
-        const { data, error } = await supabase
+        // Use supabaseAdmin to bypass RLS for insertion
+        const { data, error } = await supabaseAdmin
             .from('payments')
             .insert({
                 user_id: props.user_id,
@@ -26,7 +27,12 @@ export class PaymentRepository implements IPaymentRepository {
             throw new DomainError('Error creating payment: ' + error.message, 'DB_ERROR', 500);
         }
 
-        return data as Payment;
+        return {
+            ...data,
+            payment_date: new Date(data.payment_date),
+            created_at: data.created_at ? new Date(data.created_at) : undefined,
+            updated_at: data.updated_at ? new Date(data.updated_at) : undefined
+        } as Payment;
     }
 
     async findById(id: string): Promise<Payment | null> {
@@ -41,7 +47,12 @@ export class PaymentRepository implements IPaymentRepository {
             throw new DomainError('Error fetching payment', 'DB_ERROR', 500);
         }
 
-        return data as Payment;
+        return {
+            ...data,
+            payment_date: new Date(data.payment_date),
+            created_at: data.created_at ? new Date(data.created_at) : undefined,
+            updated_at: data.updated_at ? new Date(data.updated_at) : undefined
+        } as Payment;
     }
 
     async findByUserId(userId: string, year?: number): Promise<Payment[]> {
@@ -63,7 +74,12 @@ export class PaymentRepository implements IPaymentRepository {
             throw new DomainError('Error fetching payments', 'DB_ERROR', 500);
         }
 
-        return data as Payment[];
+        return data.map((p: any) => ({
+            ...p,
+            payment_date: new Date(p.payment_date),
+            created_at: p.created_at ? new Date(p.created_at) : undefined,
+            updated_at: p.updated_at ? new Date(p.updated_at) : undefined
+        })) as Payment[];
     }
 
     async findAll(): Promise<Payment[]> {

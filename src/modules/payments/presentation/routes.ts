@@ -60,6 +60,18 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     .post('/', async ({ body, user }) => {
         const userId = user.id;
 
+        // Debug logging
+        console.log('📝 Payment creation request received');
+        console.log('User ID:', userId);
+        console.log('Body received:', JSON.stringify(body, null, 2));
+        console.log('Amount type:', typeof body.amount, 'Value:', body.amount);
+        console.log('Date type:', typeof body.date, 'Value:', body.date);
+        console.log('Method type:', typeof body.method, 'Value:', body.method);
+        console.log('Reference:', body.reference);
+        console.log('Bank:', body.bank);
+        console.log('Period:', body.period);
+        console.log('Proof image:', body.proof_image ? 'Present' : 'Not present');
+
         const payment = await reportPaymentUseCase.execute({
             user_id: userId,
             amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
