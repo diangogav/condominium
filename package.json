@@ -8,6 +8,7 @@
     "start": "bun src/server.ts",
     "test": "bun test tests/",
     "test:e2e": "bun test tests/e2e.test.ts",
+    "typecheck": "tsc --noEmit",
     "db:init": "supabase init",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

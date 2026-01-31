@@ -39,4 +39,22 @@ describe('LoginUser Use Case', () => {
             await loginUser.execute('unknown@test.com', 'password');
         }).toThrow();
     });
+
+    it('should fail if user status is PENDING', async () => {
+        const user = new User({
+            id: 'auth-id-1',
+            email: 'pending@test.com',
+            name: 'Pending User',
+            unit: '1',
+            role: UserRole.RESIDENT,
+            status: UserStatus.PENDING
+        });
+        await userRepo.create(user);
+
+        // Mock auth repo needs to support this email or return success regardless of email in mock
+        // Our current mock returns success for any email
+        expect(async () => {
+            await loginUser.execute('pending@test.com', 'password');
+        }).toThrow('User account is pending');
+    });
 });

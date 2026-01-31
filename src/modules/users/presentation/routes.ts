@@ -1,21 +1,25 @@
 import { Elysia, t } from 'elysia';
 import { SupabaseUserRepository } from '../infrastructure/repositories/SupabaseUserRepository';
+import { SupabaseAuthRepository } from '@/modules/auth/infrastructure/repositories/SupabaseAuthRepository';
 import { GetUserById } from '../application/use-cases/GetUserById';
 import { GetUsers } from '../application/use-cases/GetUsers';
+import { CreateUser } from '../application/use-cases/CreateUser';
 import { UpdateUser } from '../application/use-cases/UpdateUser';
 import { ApproveUser } from '../application/use-cases/ApproveUser';
 import { DeleteUser } from '../application/use-cases/DeleteUser';
-import { supabase } from '@/infrastructure/supabase';
 import { UnauthorizedError } from '@/core/errors';
+import { supabase } from '@/infrastructure/supabase';
 
 // Initialize Repository and Use Cases
 // In a real DI system context, these would be injected
 const userRepo = new SupabaseUserRepository();
+const authRepo = new SupabaseAuthRepository(); // Need auth repo for creation
 const getUserById = new GetUserById(userRepo);
 const getUsers = new GetUsers(userRepo);
 const updateUser = new UpdateUser(userRepo);
 const approveUser = new ApproveUser(userRepo);
 const deleteUser = new DeleteUser(userRepo);
+const createUser = new CreateUser(userRepo, authRepo);
 
 export const userRoutes = new Elysia({ prefix: '/users' })
     .derive(async ({ request }) => {
@@ -128,6 +132,34 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         detail: {
             tags: ['Users'],
             summary: 'Approve user registration (Admin/Board)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    .post('/', async ({ user, body }) => {
+        return await createUser.execute({
+            requesterId: user.id,
+            email: body.email,
+            password: body.password,
+            name: body.name,
+            role: body.role as any,
+            building_id: body.building_id,
+            unit: body.unit,
+            phone: body.phone
+        });
+    }, {
+        body: t.Object({
+            email: t.String(),
+            password: t.String(),
+            name: t.String(),
+            role: t.Union([t.Literal('admin'), t.Literal('board'), t.Literal('resident')]),
+            building_id: t.String(),
+            unit: t.Optional(t.String()),
+            phone: t.Optional(t.String())
+        }),
+        detail: {
+            tags: ['Users'],
+            summary: 'Create new user (Admin only)',
+            description: 'Creates a new user with specified role (e.g. board member). User is auto-activated.',
             security: [{ BearerAuth: [] }]
         }
     })

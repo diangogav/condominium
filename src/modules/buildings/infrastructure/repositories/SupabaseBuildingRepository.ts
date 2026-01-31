@@ -1,6 +1,6 @@
-import { IBuildingRepository } from '../../domain/repository';
 import { Building, BuildingProps } from '../../domain/entities/Building';
-import { supabase } from '@/infrastructure/supabase';
+import { IBuildingRepository } from '../../domain/repository';
+import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class SupabaseBuildingRepository implements IBuildingRepository {

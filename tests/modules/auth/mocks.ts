@@ -19,4 +19,11 @@ export class MockAuthRepository implements IAuthRepository {
             }
         };
     }
+
+    async createUser(email: string, password: string): Promise<{ id: string; email?: string }> {
+        return {
+            id: 'new-auth-id',
+            email
+        };
+    }
 }

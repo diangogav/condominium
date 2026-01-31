@@ -6,6 +6,7 @@ export interface ApprovePaymentDTO {
     paymentId: string;
     approverId: string;
     notes?: string;
+    periods?: string[];
 }
 
 export interface RejectPaymentDTO {
@@ -20,7 +21,7 @@ export class ApprovePayment {
         private userRepo: IUserRepository
     ) { }
 
-    async approve({ paymentId, approverId, notes }: ApprovePaymentDTO): Promise<void> {
+    async approve({ paymentId, approverId, notes, periods }: ApprovePaymentDTO): Promise<void> {
         const approver = await this.userRepo.findById(approverId);
         if (!approver) {
             throw new NotFoundError('Approver not found');
@@ -42,7 +43,7 @@ export class ApprovePayment {
             }
         }
 
-        payment.approve(notes);
+        payment.approve(notes, periods);
         await this.paymentRepo.update(payment);
     }
 

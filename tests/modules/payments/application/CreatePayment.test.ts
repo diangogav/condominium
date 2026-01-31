@@ -20,7 +20,7 @@ describe('CreatePayment Use Case', () => {
             payment_date: new Date('2024-01-15'),
             method: PaymentMethod.PAGO_MOVIL,
             reference: '123456',
-            period: '2024-01'
+            periods: ['2024-01']
         });
 
         expect(payment.status).toBe(PaymentStatus.PENDING);

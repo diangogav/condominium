@@ -1,49 +1,52 @@
-import { IUserRepository } from '../../domain/repository';
+import { IUserRepository } from '@/modules/users/domain/repository';
+import { IAuthRepository } from '@/modules/auth/domain/repository';
 import { User, UserProps } from '../../domain/entities/User';
 import { UserRole, UserStatus } from '@/core/domain/enums';
-import { DomainError } from '@/core/errors';
+import { ForbiddenError, UnauthorizedError } from '@/core/errors';
 
-interface CreateUserDTO {
-    id: string; // From Auth provider
+interface CreateUserRequest {
+    requesterId: string;
     email: string;
+    password: string;
     name: string;
+    role: UserRole;
+    building_id: string; // Required for all users in this context (even admin usually belongs to system, but let's assume mandatory for now based on app logic)
     unit?: string;
-    building_id?: string;
-    role?: UserRole; // Optional, defaults to resident
+    phone?: string;
 }
 
 export class CreateUser {
-    constructor(private userRepo: IUserRepository) { }
+    constructor(
+        private userRepo: IUserRepository,
+        private authRepo: IAuthRepository
+    ) { }
 
-    async execute(dto: CreateUserDTO): Promise<User> {
-        const existingUser = await this.userRepo.findById(dto.id);
-        if (existingUser) {
-            throw new DomainError('User already exists', 'USER_EXISTS', 409);
+    async execute(request: CreateUserRequest): Promise<User> {
+        // 1. Verify Requester is Admin
+        const requester = await this.userRepo.findById(request.requesterId);
+        if (!requester) {
+            throw new UnauthorizedError('User not found');
         }
 
-        const role = dto.role || UserRole.RESIDENT;
-
-        // Residents are pending by default, others might be active depending on business rule
-        // But for now let's say creation is always pending for residents
-        let status = UserStatus.PENDING;
-        if (role === UserRole.ADMIN) {
-            status = UserStatus.ACTIVE; // Admins created directly might be active
+        if (!requester.isAdmin()) {
+            throw new ForbiddenError('Only admins can create users');
         }
 
-        // TODO: logic for creating board members? 
-        // Usually board members are created by admins or promoted.
+        // 2. Create Auth User (without login)
+        const authUser = await this.authRepo.createUser(request.email, request.password);
 
-        const userProps: UserProps = {
-            id: dto.id,
-            email: dto.email,
-            name: dto.name,
-            unit: dto.unit,
-            building_id: dto.building_id,
-            role: role,
-            status: status
-        };
+        // 3. Create Profile
+        const newUser = new User({
+            id: authUser.id,
+            email: request.email,
+            name: request.name,
+            role: request.role,
+            status: UserStatus.ACTIVE, // Created by admin = auto active
+            building_id: request.building_id,
+            unit: request.unit,
+            phone: request.phone
+        });
 
-        const user = new User(userProps);
-        return await this.userRepo.create(user);
+        return await this.userRepo.create(newUser);
     }
 }

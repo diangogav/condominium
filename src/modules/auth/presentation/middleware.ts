@@ -23,7 +23,7 @@ export const authMiddleware = new Elysia({ name: 'auth' })
         isProtected(enabled: boolean) {
             if (!enabled) return;
 
-            onBeforeHandle(({ user }) => {
+            onBeforeHandle(({ user }: { user: any }) => {
                 if (!user) {
                     throw new UnauthorizedError('Authentication required');
                 }

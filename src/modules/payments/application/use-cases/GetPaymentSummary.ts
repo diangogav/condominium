@@ -18,7 +18,7 @@ export interface PaymentTransactionDTO {
     payment_date: string;
     method: string;
     status: string;
-    period?: string;
+    periods?: string[];
 }
 
 export class GetPaymentSummary {
@@ -51,8 +51,8 @@ export class GetPaymentSummary {
         // Calculate which months have been paid
         const paidMonths = new Set<string>();
         approvedPayments.forEach(payment => {
-            if (payment.period) {
-                paidMonths.add(payment.period);
+            if (payment.periods && payment.periods.length > 0) {
+                payment.periods.forEach(period => paidMonths.add(period));
             }
         });
 
@@ -112,7 +112,7 @@ export class GetPaymentSummary {
             payment_date: p.payment_date.toISOString(),
             method: p.method,
             status: p.status,
-            period: p.period
+            periods: p.periods
         }));
 
         return {

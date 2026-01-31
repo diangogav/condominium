@@ -11,8 +11,10 @@ describe('Payment Entity', () => {
             amount: 100,
             payment_date: new Date('2024-01-15'),
             method: PaymentMethod.PAGO_MOVIL,
+            proof_url: 'http://example.com/proof.jpg',
             status: PaymentStatus.PENDING,
-            period: '2024-01'
+            periods: ['2024-03'],
+            notes: 'Test payment'
         };
 
         const payment = new Payment(props);
@@ -20,7 +22,12 @@ describe('Payment Entity', () => {
         expect(payment.id).toBe('1');
         expect(payment.user_id).toBe('user-1');
         expect(payment.amount).toBe(100);
-        expect(payment.status).toBe(PaymentStatus.PENDING);
+        expect(payment.proof_url).toBe(props.proof_url);
+        expect(payment.status).toBe(props.status);
+        expect(payment.periods).toEqual(props.periods);
+        expect(payment.notes).toBe(props.notes);
+        expect(payment.reference).toBeUndefined();
+        expect(payment.bank).toBeUndefined();
     });
 
     it('should correctly identify pending payment', () => {

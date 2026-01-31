@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. BUILDINGS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.buildings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     address TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -54,7 +54,7 @@ CREATE POLICY "Allow profile creation during registration"
 -- 3. PAYMENTS TABLE
 -- =====================================================
 CREATE TABLE IF NOT EXISTS public.payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
     amount NUMERIC NOT NULL CHECK (amount >= 0),
     payment_date DATE NOT NULL,

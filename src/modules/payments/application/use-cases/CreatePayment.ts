@@ -12,36 +12,27 @@ export interface CreatePaymentDTO {
     reference?: string;
     bank?: string;
     proof_url?: string;
-    period?: string;
+    periods?: string[];
 }
 
 export class CreatePayment {
     constructor(private paymentRepo: IPaymentRepository) { }
 
-    async execute(dto: CreatePaymentDTO): Promise<Payment> {
-        // Validate amount
-        if (dto.amount <= 0) {
-            throw new DomainError('Amount must be greater than 0', 'INVALID_AMOUNT', 400);
-        }
+    async execute(request: CreatePaymentDTO): Promise<Payment> {
+        const payment = new Payment({
+            id: crypto.randomUUID(),
+            user_id: request.user_id,
+            building_id: request.building_id,
+            amount: request.amount,
+            payment_date: request.payment_date,
+            method: request.method,
+            reference: request.reference,
+            bank: request.bank,
+            proof_url: request.proof_url,
+            status: PaymentStatus.PENDING,
+            periods: request.periods
+        });
 
-        // Generate ID (in real scenario, this might come from DB)
-        const id = crypto.randomUUID();
-
-        const paymentProps: PaymentProps = {
-            id,
-            user_id: dto.user_id,
-            building_id: dto.building_id,
-            amount: dto.amount,
-            payment_date: dto.payment_date,
-            method: dto.method,
-            reference: dto.reference,
-            bank: dto.bank,
-            proof_url: dto.proof_url,
-            status: PaymentStatus.PENDING, // Always starts as pending
-            period: dto.period
-        };
-
-        const payment = new Payment(paymentProps);
         return await this.paymentRepo.create(payment);
     }
 }

@@ -74,4 +74,12 @@ export class User {
         this.props.role = newRole;
         this.props.updated_at = new Date();
     }
+
+    toJSON(): UserProps {
+        return this.props;
+    }
+
+    toString(): string {
+        return JSON.stringify(this.toJSON());
+    }
 }

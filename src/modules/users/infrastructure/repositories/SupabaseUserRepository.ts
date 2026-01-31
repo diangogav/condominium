@@ -1,8 +1,8 @@
-import { IUserRepository, FindAllUsersFilters } from '../../domain/repository';
 import { User, UserProps } from '../../domain/entities/User';
-import { supabase } from '@/infrastructure/supabase';
+import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 import { UserRole, UserStatus } from '@/core/domain/enums';
+import { IUserRepository, FindAllUsersFilters } from '../../domain/repository';
 
 export class SupabaseUserRepository implements IUserRepository {
     private toDomain(data: any): User {
@@ -119,6 +119,7 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         const { data, error } = await query;
+
 
         if (error) {
             throw new DomainError('Error fetching users', 'DB_ERROR', 500);

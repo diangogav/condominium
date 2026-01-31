@@ -1,5 +1,5 @@
 import { IAuthRepository, AuthSession } from '../../domain/repository';
-import { supabase } from '@/infrastructure/supabase';
+import { supabase, supabaseAdmin } from '@/infrastructure/supabase';
 import { DomainError, UnauthorizedError, ValidationError } from '@/core/errors';
 
 export class SupabaseAuthRepository implements IAuthRepository {
@@ -15,6 +15,27 @@ export class SupabaseAuthRepository implements IAuthRepository {
 
         if (!data.user) {
             throw new DomainError('User creation failed without error', 'AUTH_ERROR', 500);
+        }
+
+        return {
+            id: data.user.id,
+            email: data.user.email
+        };
+    }
+
+    async createUser(email: string, password: string): Promise<{ id: string; email?: string }> {
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true // Auto confirm since admin created it
+        });
+
+        if (error) {
+            throw new ValidationError(error.message);
+        }
+
+        if (!data.user) {
+            throw new DomainError('Admin user creation failed without error', 'AUTH_ERROR', 500);
         }
 
         return {

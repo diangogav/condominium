@@ -1,6 +1,6 @@
-import { IPaymentRepository, FindAllPaymentsFilters } from '../../domain/repository';
 import { Payment, PaymentProps } from '../../domain/entities/Payment';
-import { supabase } from '@/infrastructure/supabase';
+import { IPaymentRepository, FindAllPaymentsFilters } from '../../domain/repository';
+import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 import { PaymentStatus, PaymentMethod } from '@/core/domain/enums';
 
@@ -17,7 +17,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             bank: data.bank,
             proof_url: data.proof_url,
             status: data.status as PaymentStatus,
-            period: data.period,
+            periods: data.periods,
             notes: data.notes,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
@@ -37,7 +37,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             bank: payment.bank,
             proof_url: payment.proof_url,
             status: payment.status,
-            period: payment.period,
+            periods: payment.periods,
             notes: payment.notes,
             updated_at: payment.updated_at,
         };
@@ -129,7 +129,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             query = query.eq('status', filters.status);
         }
         if (filters?.period) {
-            query = query.eq('period', filters.period);
+            // Check if periods array contains the requested period
+            query = query.contains('periods', [filters.period]);
         }
         if (filters?.year) {
             const startDate = `${filters.year}-01-01`;

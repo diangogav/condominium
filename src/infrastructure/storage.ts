@@ -1,4 +1,4 @@
-import { supabase } from '@/infrastructure/supabase';
+import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class StorageService {

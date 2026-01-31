@@ -1,6 +1,8 @@
 import { IAuthRepository, AuthSession } from '../repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
 import { User } from '@/modules/users/domain/entities/User';
+import { UnauthorizedError } from '@/core/errors';
+import { UserStatus } from '@/core/domain/enums';
 
 export interface LoginResponse {
     token: AuthSession;
@@ -19,10 +21,11 @@ export class LoginUser {
         let user = await this.userRepo.findById(session.user.id);
 
         if (!user) {
-            // Fallback or Error? 
-            // If user exists in Auth but not in Profile (edge case), maybe return basic info or throw?
-            // For now, let's assume consistence or throw.
-            throw new Error('User profile not found');
+            throw new UnauthorizedError('User profile not found');
+        }
+
+        if (user.status !== UserStatus.ACTIVE) {
+            throw new UnauthorizedError(`User account is ${user.status}. Please wait for approval.`);
         }
 
         return {

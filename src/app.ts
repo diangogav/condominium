@@ -9,9 +9,10 @@ import { userRoutes } from './modules/users/presentation/routes';
 import { buildingRoutes } from './modules/buildings/presentation/routes';
 import { paymentRoutes } from './modules/payments/presentation/routes';
 
+// @ts-ignore
 export const app = new Elysia()
     .use(cors({
-        origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+        origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
@@ -44,6 +45,9 @@ export const app = new Elysia()
                     BearerAuth: []
                 }
             ]
+        },
+        swaggerOptions: {
+            persistAuthorization: true
         }
     }))
     .use(authRoutes)

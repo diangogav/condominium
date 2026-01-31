@@ -1,47 +1,88 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { CreateUser } from '@/modules/users/application/use-cases/CreateUser';
 import { MockUserRepository } from '../mocks';
+import { MockAuthRepository } from '../../auth/mocks';
 import { UserRole, UserStatus } from '@/core/domain/enums';
-import { DomainError } from '@/core/errors';
+import { DomainError, ForbiddenError, UnauthorizedError } from '@/core/errors';
+import { User } from '@/modules/users/domain/entities/User';
 
 describe('CreateUser Use Case', () => {
-    let repo: MockUserRepository;
+    let userRepo: MockUserRepository;
+    let authRepo: MockAuthRepository;
     let useCase: CreateUser;
 
-    beforeEach(() => {
-        repo = new MockUserRepository();
-        useCase = new CreateUser(repo);
-    });
+    const ADMIN_ID = 'admin-user-id';
+    const RESIDENT_ID = 'resident-user-id';
+    const BUILDING_ID = 'building-1';
 
-    it('should create a resident with pending status by default', async () => {
-        const newUser = await useCase.execute({
-            id: 'u1',
-            email: 'test@test.com',
-            name: 'Test',
-            role: UserRole.RESIDENT
-        });
+    beforeEach(async () => {
+        userRepo = new MockUserRepository();
+        authRepo = new MockAuthRepository();
+        useCase = new CreateUser(userRepo, authRepo);
 
-        expect(newUser.role).toBe(UserRole.RESIDENT);
-        expect(newUser.status).toBe(UserStatus.PENDING);
-        expect(repo.users.has('u1')).toBe(true);
-    });
-
-    it('should create an admin with active status', async () => {
-        const admin = await useCase.execute({
-            id: 'admin1',
+        // Seed an admin user
+        await userRepo.create(new User({
+            id: ADMIN_ID,
             email: 'admin@test.com',
-            name: 'Admin',
-            role: UserRole.ADMIN
-        });
+            name: 'Admin User',
+            role: UserRole.ADMIN,
+            status: UserStatus.ACTIVE,
+            building_id: BUILDING_ID,
+            created_at: new Date(),
+            updated_at: new Date()
+        }));
 
-        expect(admin.role).toBe(UserRole.ADMIN);
-        expect(admin.status).toBe(UserStatus.ACTIVE);
+        // Seed a resident user
+        await userRepo.create(new User({
+            id: RESIDENT_ID,
+            email: 'resident@test.com',
+            name: 'Resident User',
+            role: UserRole.RESIDENT,
+            status: UserStatus.ACTIVE,
+            building_id: BUILDING_ID,
+            created_at: new Date(),
+            updated_at: new Date()
+        }));
     });
 
-    it('should fail if user already exists', async () => {
-        await useCase.execute({ id: 'u1', email: 'test@test.com', name: 'Test', role: UserRole.RESIDENT });
+    it('should allow admin to create a new user', async () => {
+        const newUser = await useCase.execute({
+            requesterId: ADMIN_ID,
+            email: 'newuser@test.com',
+            password: 'password123',
+            name: 'New User',
+            role: UserRole.RESIDENT,
+            building_id: BUILDING_ID,
+            unit: '101'
+        });
 
-        expect(useCase.execute({ id: 'u1', email: 'test@test.com', name: 'Test' }))
-            .rejects.toThrow(DomainError);
+        expect(newUser.email).toBe('newuser@test.com');
+        expect(newUser.status).toBe(UserStatus.ACTIVE); // Created by admin is active
+    });
+
+    it('should forbid non-admin from creating users', async () => {
+        const request = {
+            requesterId: RESIDENT_ID,
+            email: 'hacker@test.com',
+            password: 'password123',
+            name: 'Hacker',
+            role: UserRole.ADMIN,
+            building_id: BUILDING_ID
+        };
+
+        expect(useCase.execute(request)).rejects.toThrow(ForbiddenError);
+    });
+
+    it('should throw error if requester not found', async () => {
+        const request = {
+            requesterId: 'unknown-id',
+            email: 'test@test.com',
+            password: 'pass',
+            name: 'Test',
+            role: UserRole.RESIDENT,
+            building_id: BUILDING_ID
+        };
+
+        expect(useCase.execute(request)).rejects.toThrow(UnauthorizedError);
     });
 });

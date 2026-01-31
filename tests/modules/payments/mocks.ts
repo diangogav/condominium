@@ -41,7 +41,7 @@ export class MockPaymentRepository implements IPaymentRepository {
             filtered = filtered.filter(p => p.status === filters.status);
         }
         if (filters?.period) {
-            filtered = filtered.filter(p => p.period === filters.period);
+            filtered = filtered.filter(p => p.periods?.includes(filters.period!));
         }
         if (filters?.user_id) {
             filtered = filtered.filter(p => p.user_id === filters.user_id);

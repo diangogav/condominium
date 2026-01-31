@@ -37,4 +37,12 @@ export class Building {
         this.props.address = address;
         this.props.updated_at = new Date();
     }
+
+    toJSON(): BuildingProps {
+        return this.props;
+    }
+
+    toString(): string {
+        return JSON.stringify(this.toJSON());
+    }
 }

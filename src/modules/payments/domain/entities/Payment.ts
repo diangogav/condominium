@@ -11,7 +11,7 @@ export interface PaymentProps {
     bank?: string;
     proof_url?: string;
     status: PaymentStatus;
-    period?: string; // e.g., "2024-03" for March 2024
+    periods?: string[]; // e.g., ["2024-03", "2024-04"]
     notes?: string;
     created_at?: Date;
     updated_at?: Date;
@@ -37,7 +37,7 @@ export class Payment {
     get bank(): string | undefined { return this.props.bank; }
     get proof_url(): string | undefined { return this.props.proof_url; }
     get status(): PaymentStatus { return this.props.status; }
-    get period(): string | undefined { return this.props.period; }
+    get periods(): string[] | undefined { return this.props.periods; }
     get notes(): string | undefined { return this.props.notes; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }
@@ -54,10 +54,13 @@ export class Payment {
         return this.props.status === PaymentStatus.REJECTED;
     }
 
-    approve(notes?: string): void {
+    approve(notes?: string, overriddenPeriods?: string[]): void {
         if (this.props.status === PaymentStatus.APPROVED) return;
         this.props.status = PaymentStatus.APPROVED;
         if (notes) this.props.notes = notes;
+        if (overriddenPeriods && overriddenPeriods.length > 0) {
+            this.props.periods = overriddenPeriods;
+        }
         this.props.updated_at = new Date();
     }
 
@@ -71,5 +74,13 @@ export class Payment {
     updateNotes(notes: string): void {
         this.props.notes = notes;
         this.props.updated_at = new Date();
+    }
+
+    toJSON(): PaymentProps {
+        return this.props;
+    }
+
+    toString(): string {
+        return JSON.stringify(this.toJSON());
     }
 }

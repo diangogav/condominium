@@ -65,7 +65,6 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get payment by ID
     .get('/:id', async ({ params, user }) => {
         const payment = await paymentRepo.findById(params.id);
-
         // Verify ownership (users can only see their own payments)
         if (payment && payment.user_id !== user.id) {
             throw new UnauthorizedError('Unauthorized');
@@ -96,6 +95,12 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         const targetBuildingId = body.building_id || userProfile.building_id;
 
+        // Normalize periods to array
+        let periods: string[] | undefined;
+        if (body.periods) {
+            periods = Array.isArray(body.periods) ? body.periods : [body.periods];
+        }
+
         const payment = await createPayment.execute({
             user_id: userId,
             building_id: targetBuildingId,
@@ -105,10 +110,12 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             reference: body.reference,
             bank: body.bank,
             proof_url: proofUrl,
-            period: body.period
+            periods: periods
         });
 
-        return payment;
+        console.log("payment.toJSON()", payment.toJSON())
+
+        return payment.toJSON();
     }, {
         body: t.Object({
             amount: t.Union([t.Number(), t.String()], { minimum: 0, examples: [50.00, '75.50', 100] }),
@@ -121,7 +128,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             reference: t.Optional(t.String({ examples: ['123456789', 'REF-2024-001'] })),
             bank: t.Optional(t.String({ examples: ['Banco de Venezuela', 'Banesco', 'Mercantil'] })),
             proof_image: t.Optional(t.File()),
-            period: t.Optional(t.String({ examples: ['2026-01', '2024-12'] })),
+            periods: t.Optional(t.Union([t.String(), t.Array(t.String())], { examples: ['2026-01', ['2026-01', '2026-02']] })),
             building_id: t.Optional(t.String())
         }),
         type: 'multipart/form-data',
@@ -161,7 +168,8 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             await approvePayment.approve({
                 paymentId: params.id,
                 approverId: user.id,
-                notes: body.notes
+                notes: body.notes,
+                periods: body.approved_periods
             });
         } else if (body.status === 'REJECTED') {
             await approvePayment.reject({
@@ -176,6 +184,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         body: t.Object({
             status: t.Union([t.Literal('PENDING'), t.Literal('APPROVED'), t.Literal('REJECTED')]),
             notes: t.Optional(t.String()),
+            approved_periods: t.Optional(t.Array(t.String()))
         }),
         detail: {
             tags: ['Payments'],
