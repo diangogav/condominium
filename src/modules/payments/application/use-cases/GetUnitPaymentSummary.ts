@@ -21,7 +21,7 @@ export interface PaymentTransactionDTO {
     periods?: string[];
 }
 
-export class GetPaymentSummary {
+export class GetUnitPaymentSummary {
     constructor(
         private paymentRepo: IPaymentRepository,
         private userRepo: IUserRepository

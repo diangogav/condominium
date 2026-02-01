@@ -3,8 +3,8 @@ import { SupabasePaymentRepository } from '../infrastructure/repositories/Supaba
 import { SupabaseUserRepository } from '@/modules/users/infrastructure/repositories/SupabaseUserRepository';
 import { CreatePayment } from '../application/use-cases/CreatePayment';
 import { ApprovePayment } from '../application/use-cases/ApprovePayment';
-import { GetUserPayments } from '../application/use-cases/GetUserPayments';
-import { GetPaymentSummary } from '../application/use-cases/GetPaymentSummary';
+import { GetUnitPayments } from '../application/use-cases/GetUnitPayments';
+import { GetUnitPaymentSummary } from '../application/use-cases/GetUnitPaymentSummary';
 import { GetAllPayments } from '../application/use-cases/GetAllPayments';
 import { StorageService } from '@/infrastructure/storage';
 import { supabase } from '@/infrastructure/supabase';
@@ -18,8 +18,8 @@ const storageService = new StorageService();
 
 const createPayment = new CreatePayment(paymentRepo, userRepo);
 const approvePayment = new ApprovePayment(paymentRepo, userRepo);
-const getUserPayments = new GetUserPayments(paymentRepo);
-const getPaymentSummary = new GetPaymentSummary(paymentRepo, userRepo);
+const getUnitPayments = new GetUnitPayments(paymentRepo, userRepo);
+const getUnitPaymentSummary = new GetUnitPaymentSummary(paymentRepo, userRepo);
 const getAllPayments = new GetAllPayments(paymentRepo, userRepo);
 
 export const paymentRoutes = new Elysia({ prefix: '/payments' })
@@ -42,7 +42,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get user's payment history
     .get('/', async ({ user, query }) => {
         const year = query.year ? parseInt(query.year) : undefined;
-        return await getUserPayments.execute(user.id, year);
+        return await getUnitPayments.execute(user.id, year);
     }, {
         query: t.Object({
             year: t.Optional(t.String())
@@ -54,7 +54,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     })
     // Get payment summary with solvency status (replaces /dashboard/summary)
     .get('/summary', async ({ user }) => {
-        return await getPaymentSummary.execute(user.id);
+        return await getUnitPaymentSummary.execute(user.id);
     }, {
         detail: {
             tags: ['Payments'],
