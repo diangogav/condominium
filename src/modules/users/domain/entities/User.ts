@@ -6,7 +6,7 @@ export interface UserProps {
     email: string;
     name: string;
     phone?: string;
-    unit?: string;
+    unit_id?: string;
     building_id?: string;
     role: UserRole;
     status: UserStatus;
@@ -28,7 +28,7 @@ export class User {
     get email(): string { return this.props.email; }
     get name(): string { return this.props.name; }
     get phone(): string | undefined { return this.props.phone; }
-    get unit(): string | undefined { return this.props.unit; }
+    get unit_id(): string | undefined { return this.props.unit_id; }
     get building_id(): string | undefined { return this.props.building_id; }
     get role(): UserRole { return this.props.role; }
     get status(): UserStatus { return this.props.status; }

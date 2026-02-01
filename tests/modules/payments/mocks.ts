@@ -23,8 +23,8 @@ export class MockPaymentRepository implements IPaymentRepository {
         return filtered.sort((a, b) => b.payment_date.getTime() - a.payment_date.getTime());
     }
 
-    async findByUnit(buildingId: string, unit: string, year?: number): Promise<Payment[]> {
-        let filtered = this.payments.filter(p => p.building_id === buildingId && p.unit === unit);
+    async findByUnit(buildingId: string, unitId: string, year?: number): Promise<Payment[]> {
+        let filtered = this.payments.filter(p => p.building_id === buildingId && p.unit_id === unitId);
 
         if (year) {
             filtered = filtered.filter(p => p.payment_date.getFullYear() === year);
@@ -55,6 +55,10 @@ export class MockPaymentRepository implements IPaymentRepository {
         }
         if (filters?.user_id) {
             filtered = filtered.filter(p => p.user_id === filters.user_id);
+        }
+
+        if (filters?.unit_id) {
+            filtered = filtered.filter(p => p.unit_id === filters.unit_id);
         }
 
         return filtered.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());

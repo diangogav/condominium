@@ -14,7 +14,7 @@ describe('Payment Entity', () => {
             proof_url: 'http://example.com/proof.jpg',
             status: PaymentStatus.PENDING,
             periods: ['2024-03'],
-            unit: 'A1',
+            unit_id: 'A1',
             notes: 'Test payment'
         };
 
@@ -39,7 +39,7 @@ describe('Payment Entity', () => {
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         expect(payment.isPending()).toBe(true);
@@ -55,7 +55,7 @@ describe('Payment Entity', () => {
             payment_date: new Date(),
             method: PaymentMethod.CASH,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         payment.approve('Approved by admin');
@@ -73,7 +73,7 @@ describe('Payment Entity', () => {
             payment_date: new Date(),
             method: PaymentMethod.PAGO_MOVIL,
             status: PaymentStatus.APPROVED,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         payment.approve();
@@ -89,7 +89,7 @@ describe('Payment Entity', () => {
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         payment.reject('Invalid proof');
@@ -107,7 +107,7 @@ describe('Payment Entity', () => {
             payment_date: new Date(),
             method: PaymentMethod.CASH,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         payment.updateNotes('Additional information');

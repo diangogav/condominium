@@ -22,7 +22,7 @@ describe('LoginUser Use Case', () => {
             id: 'auth-id-1',
             email: 'test@test.com',
             name: 'Test',
-            unit: '1',
+            unit_id: '1',
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE
         });
@@ -45,7 +45,7 @@ describe('LoginUser Use Case', () => {
             id: 'auth-id-1',
             email: 'pending@test.com',
             name: 'Pending User',
-            unit: '1',
+            unit_id: '1',
             role: UserRole.RESIDENT,
             status: UserStatus.PENDING
         });

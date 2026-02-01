@@ -2,42 +2,38 @@ import { IUserRepository, FindAllUsersFilters } from '@/modules/users/domain/rep
 import { User } from '@/modules/users/domain/entities/User';
 
 export class MockUserRepository implements IUserRepository {
-    users: Map<string, User> = new Map();
+    public users: User[] = [];
 
     async create(user: User): Promise<User> {
-        this.users.set(user.id, user);
+        this.users.push(user);
         return user;
     }
+
     async findById(id: string): Promise<User | null> {
-        return this.users.get(id) || null;
+        return this.users.find(u => u.id === id) || null;
     }
+
     async findByEmail(email: string): Promise<User | null> {
-        // Simple search
-        for (const user of this.users.values()) {
-            if (user.email === email) return user;
-        }
-        return null;
+        return this.users.find(u => u.email === email) || null;
     }
+
     async update(user: User): Promise<User> {
-        this.users.set(user.id, user);
+        const index = this.users.findIndex(u => u.id === user.id);
+        if (index !== -1) {
+            this.users[index] = user;
+        }
         return user;
     }
+
     async findAll(filters?: FindAllUsersFilters): Promise<User[]> {
-        let result = Array.from(this.users.values());
-        if (filters) {
-            if (filters.building_id) {
-                result = result.filter(u => u.building_id === filters.building_id);
-            }
-            if (filters.role) {
-                result = result.filter(u => u.role === filters.role);
-            }
-            if (filters.status) {
-                result = result.filter(u => u.status === filters.status);
-            }
+        let filtered = [...this.users];
+        if (filters?.building_id) {
+            filtered = filtered.filter(u => u.building_id === filters.building_id);
         }
-        return result;
+        return filtered;
     }
+
     async delete(id: string): Promise<void> {
-        this.users.delete(id);
+        this.users = this.users.filter(u => u.id !== id);
     }
 }

@@ -42,12 +42,12 @@ export class GetPaymentSummary {
         const startYear = userCreatedAt.getFullYear();
         const startMonth = userCreatedAt.getMonth() + 1; // 1-12
 
-        if (!user.building_id || !user.unit) {
+        if (!user.building_id || !user.unit_id) {
             throw new DomainError('User is not assigned to a building or unit', 'USER_ERROR', 400);
         }
 
         // Get all payments for the unit (apartment) in the current year
-        const payments = await this.paymentRepo.findByUnit(user.building_id, user.unit, currentYear);
+        const payments = await this.paymentRepo.findByUnit(user.building_id, user.unit_id, currentYear);
 
         // Get approved payments only
         const approvedPayments = payments.filter(p => p.isApproved());

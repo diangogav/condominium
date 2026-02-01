@@ -16,7 +16,7 @@ const paymentRepo = new SupabasePaymentRepository();
 const userRepo = new SupabaseUserRepository();
 const storageService = new StorageService();
 
-const createPayment = new CreatePayment(paymentRepo);
+const createPayment = new CreatePayment(paymentRepo, userRepo);
 const approvePayment = new ApprovePayment(paymentRepo, userRepo);
 const getUserPayments = new GetUserPayments(paymentRepo);
 const getPaymentSummary = new GetPaymentSummary(paymentRepo, userRepo);
@@ -104,7 +104,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         const payment = await createPayment.execute({
             user_id: userId,
             building_id: body.building_id || userProfile.building_id, // Allow body.building_id to override user's default
-            unit: userProfile.unit, // Add unit from user profile
+            // unit_id inferred in use case
             amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
             payment_date: new Date(body.date),
             method: body.method as PaymentMethod,
@@ -148,7 +148,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
                 status: query.status,
                 period: query.period,
                 year: query.year,
-                unit: query.unit
+                unit_id: query.unit_id
             }
         });
     }, {
@@ -157,7 +157,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             status: t.Optional(t.String()),
             period: t.Optional(t.String()),
             year: t.Optional(t.String()),
-            unit: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
         }),
         detail: {
             tags: ['Payments'],

@@ -16,7 +16,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             name: body.name,
             email: body.email,
             password: body.password,
-            unit: body.unit,
+            unit_id: body.unit,
             building_id: body.building_id
         });
 

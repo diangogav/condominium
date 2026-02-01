@@ -12,7 +12,7 @@ export interface PaymentProps {
     proof_url?: string;
     status: PaymentStatus;
     periods?: string[]; // e.g., ["2024-03", "2024-04"]
-    unit: string;
+    unit_id: string;
     notes?: string;
     created_at?: Date;
     updated_at?: Date;
@@ -39,7 +39,7 @@ export class Payment {
     get proof_url(): string | undefined { return this.props.proof_url; }
     get status(): PaymentStatus { return this.props.status; }
     get periods(): string[] | undefined { return this.props.periods; }
-    get unit(): string { return this.props.unit; }
+    get unit_id(): string { return this.props.unit_id; }
     get notes(): string | undefined { return this.props.notes; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }

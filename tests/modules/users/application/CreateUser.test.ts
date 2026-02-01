@@ -53,7 +53,7 @@ describe('CreateUser Use Case', () => {
             name: 'New User',
             role: UserRole.RESIDENT,
             building_id: BUILDING_ID,
-            unit: '101'
+            unit_id: '101'
         });
 
         expect(newUser.email).toBe('newuser@test.com');

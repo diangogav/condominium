@@ -110,7 +110,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         body: t.Object({
             name: t.Optional(t.String()),
             phone: t.Optional(t.String()),
-            unit: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
             role: t.Optional(t.Union([t.Literal('resident'), t.Literal('board'), t.Literal('admin')])),
             status: t.Optional(t.String()),
             building_id: t.Optional(t.String()),
@@ -143,7 +143,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             name: body.name,
             role: body.role as any,
             building_id: body.building_id,
-            unit: body.unit,
+            unit_id: body.unit_id,
             phone: body.phone
         });
     }, {
@@ -153,7 +153,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             name: t.String(),
             role: t.Union([t.Literal('admin'), t.Literal('board'), t.Literal('resident')]),
             building_id: t.String(),
-            unit: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
             phone: t.Optional(t.String())
         }),
         detail: {

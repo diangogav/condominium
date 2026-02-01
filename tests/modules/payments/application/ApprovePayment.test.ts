@@ -22,7 +22,7 @@ describe('ApprovePayment Use Case', () => {
             id: 'admin-1',
             email: 'admin@test.com',
             name: 'Admin',
-            unit: 'A1',
+            unit_id: 'A1',
             building_id: 'building-1',
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
@@ -36,7 +36,7 @@ describe('ApprovePayment Use Case', () => {
             payment_date: new Date(),
             method: PaymentMethod.PAGO_MOVIL,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         await userRepo.create(admin);
@@ -58,7 +58,7 @@ describe('ApprovePayment Use Case', () => {
             id: 'board-1',
             email: 'board@test.com',
             name: 'Board Member',
-            unit: 'B1',
+            unit_id: 'B1',
             building_id: 'building-1',
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
@@ -72,7 +72,7 @@ describe('ApprovePayment Use Case', () => {
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
             status: PaymentStatus.PENDING,
-            unit: 'B1'
+            unit_id: 'B1'
         });
 
         await userRepo.create(board);
@@ -92,7 +92,7 @@ describe('ApprovePayment Use Case', () => {
             id: 'board-1',
             email: 'board@test.com',
             name: 'Board Member',
-            unit: 'B1',
+            unit_id: 'B1',
             building_id: 'building-2',
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
@@ -106,7 +106,7 @@ describe('ApprovePayment Use Case', () => {
             payment_date: new Date(),
             method: PaymentMethod.CASH,
             status: PaymentStatus.PENDING,
-            unit: 'B1'
+            unit_id: 'B1'
         });
 
         await userRepo.create(board);
@@ -125,7 +125,7 @@ describe('ApprovePayment Use Case', () => {
             id: 'resident-1',
             email: 'resident@test.com',
             name: 'Resident',
-            unit: 'C1',
+            unit_id: 'C1',
             building_id: 'building-1',
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE
@@ -139,7 +139,7 @@ describe('ApprovePayment Use Case', () => {
             payment_date: new Date(),
             method: PaymentMethod.PAGO_MOVIL,
             status: PaymentStatus.PENDING,
-            unit: 'C1'
+            unit_id: 'C1'
         });
 
         await userRepo.create(resident);
@@ -158,7 +158,7 @@ describe('ApprovePayment Use Case', () => {
             id: 'admin-1',
             email: 'admin@test.com',
             name: 'Admin',
-            unit: 'A1',
+            unit_id: 'A1',
             building_id: 'building-1',
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
@@ -172,7 +172,7 @@ describe('ApprovePayment Use Case', () => {
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
             status: PaymentStatus.PENDING,
-            unit: 'A1'
+            unit_id: 'A1'
         });
 
         await userRepo.create(admin);

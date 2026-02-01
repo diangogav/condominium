@@ -33,7 +33,7 @@ describe('UpdateUser Use Case', () => {
         });
 
         expect(updated.name).toBe('New Name');
-        expect(repo.users.get('u1')!.name).toBe('New Name');
+        expect(repo.users.find(u => u.id === 'u1')!.name).toBe('New Name');
     });
 
     it('should allow admin to update any profile', async () => {

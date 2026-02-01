@@ -19,7 +19,7 @@ describe('RegisterResident Use Case', () => {
             name: 'New Resident',
             email: 'resident@test.com',
             password: 'password123',
-            unit: '101',
+            unit_id: '101',
             building_id: 'building-1'
         });
 

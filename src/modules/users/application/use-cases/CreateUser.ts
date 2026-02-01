@@ -11,7 +11,7 @@ interface CreateUserRequest {
     name: string;
     role: UserRole;
     building_id: string; // Required for all users in this context (even admin usually belongs to system, but let's assume mandatory for now based on app logic)
-    unit?: string;
+    unit_id?: string;
     phone?: string;
 }
 
@@ -43,7 +43,7 @@ export class CreateUser {
             role: request.role,
             status: UserStatus.ACTIVE, // Created by admin = auto active
             building_id: request.building_id,
-            unit: request.unit,
+            unit_id: request.unit_id,
             phone: request.phone
         });
 

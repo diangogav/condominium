@@ -18,7 +18,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             proof_url: data.proof_url,
             status: data.status as PaymentStatus,
             periods: data.periods,
-            unit: data.unit,
+            unit_id: data.unit_id,
             notes: data.notes,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
@@ -39,7 +39,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             proof_url: payment.proof_url,
             status: payment.status,
             periods: payment.periods,
-            unit: payment.unit,
+            unit_id: payment.unit_id,
             notes: payment.notes,
             updated_at: payment.updated_at,
         };
@@ -101,12 +101,12 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         return data.map(this.toDomain);
     }
 
-    async findByUnit(buildingId: string, unit: string, year?: number): Promise<Payment[]> {
+    async findByUnit(buildingId: string, unitId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
             .select('*')
             .eq('building_id', buildingId)
-            .eq('unit', unit)
+            .eq('unit_id', unitId)
             .order('payment_date', { ascending: false });
 
         if (year) {
@@ -165,8 +165,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         if (filters?.user_id) {
             query = query.eq('user_id', filters.user_id);
         }
-        if (filters?.unit) {
-            query = query.eq('unit', filters.unit);
+        if (filters?.unit_id) {
+            query = query.eq('unit_id', filters.unit_id);
         }
 
         const { data, error } = await query;

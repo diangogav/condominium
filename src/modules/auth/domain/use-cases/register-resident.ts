@@ -7,7 +7,8 @@ interface RegisterRequest {
     name: string;
     email: string;
     password: string;
-    unit: string;
+
+    unit_id: string;
     building_id: string; // ID of the pre-existing building
 }
 
@@ -26,7 +27,7 @@ export class RegisterResident {
             id: authUser.id,
             email: request.email,
             name: request.name,
-            unit: request.unit,
+            unit_id: request.unit_id,
             building_id: request.building_id,
             role: UserRole.RESIDENT,
             status: UserStatus.PENDING

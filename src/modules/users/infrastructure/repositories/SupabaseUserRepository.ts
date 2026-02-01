@@ -11,7 +11,7 @@ export class SupabaseUserRepository implements IUserRepository {
             email: data.email,
             name: data.name,
             phone: data.phone,
-            unit: data.unit,
+            unit_id: data.unit_id,
             building_id: data.building_id,
             role: data.role as UserRole,
             status: data.status as UserStatus || UserStatus.PENDING, // Default to PENDING if not set
@@ -27,7 +27,7 @@ export class SupabaseUserRepository implements IUserRepository {
             email: user.email,
             name: user.name,
             phone: user.phone,
-            unit: user.unit,
+            unit_id: user.unit_id,
             building_id: user.building_id,
             role: user.role,
             status: user.status,

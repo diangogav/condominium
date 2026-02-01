@@ -10,7 +10,7 @@ export interface GetAllPaymentsRequest {
         status?: string;
         period?: string;
         year?: string;
-        unit?: string;
+        unit_id?: string;
     };
 }
 
@@ -36,7 +36,7 @@ export class GetAllPayments {
         if (request.filters?.status) filters.status = request.filters.status as any;
         if (request.filters?.period) filters.period = request.filters.period;
         if (request.filters?.year) filters.year = parseInt(request.filters.year);
-        if (request.filters?.unit) filters.unit = request.filters.unit;
+        if (request.filters?.unit_id) filters.unit_id = request.filters.unit_id;
 
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {

@@ -1,18 +1,33 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { CreatePayment } from '@/modules/payments/application/use-cases/CreatePayment';
 import { MockPaymentRepository } from '../mocks';
-import { PaymentMethod, PaymentStatus } from '@/core/domain/enums';
+import { MockUserRepository } from '../../users/mocks';
+import { PaymentMethod, PaymentStatus, UserRole, UserStatus } from '@/core/domain/enums';
+import { User } from '@/modules/users/domain/entities/User';
 
 describe('CreatePayment Use Case', () => {
     let paymentRepo: MockPaymentRepository;
+    let userRepo: MockUserRepository;
     let createPayment: CreatePayment;
 
     beforeEach(() => {
         paymentRepo = new MockPaymentRepository();
-        createPayment = new CreatePayment(paymentRepo);
+        userRepo = new MockUserRepository();
+        createPayment = new CreatePayment(paymentRepo, userRepo);
     });
 
     it('should create a payment with pending status by default', async () => {
+        // Setup user
+        await userRepo.create(new User({
+            id: 'user-1',
+            name: 'Test',
+            email: 'test@example.com',
+            role: UserRole.RESIDENT,
+            status: UserStatus.ACTIVE,
+            building_id: 'building-1',
+            unit_id: 'unit-1'
+        }));
+
         const payment = await createPayment.execute({
             user_id: 'user-1',
             building_id: 'building-1',
