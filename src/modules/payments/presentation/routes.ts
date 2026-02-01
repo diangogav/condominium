@@ -9,7 +9,7 @@ import { GetAllPayments } from '../application/use-cases/GetAllPayments';
 import { StorageService } from '@/infrastructure/storage';
 import { supabase } from '@/infrastructure/supabase';
 import { UnauthorizedError } from '@/core/errors';
-import { PaymentMethod } from '@/core/domain/enums';
+import { PaymentMethod, UserRole } from '@/core/domain/enums';
 
 // Initialize repositories and use cases
 const paymentRepo = new SupabasePaymentRepository();
@@ -65,16 +65,32 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get payment by ID
     .get('/:id', async ({ params, user }) => {
         const payment = await paymentRepo.findById(params.id);
-        // Verify ownership (users can only see their own payments)
-        if (payment && payment.user_id !== user.id) {
-            throw new UnauthorizedError('Unauthorized');
+        if (!payment) return null;
+
+        // Get user profile for authorization
+        const userProfile = await userRepo.findById(user.id);
+        if (!userProfile) throw new UnauthorizedError('User profile not found');
+
+        // Authorization Logic:
+        // 1. Admin has full access
+        if (userProfile.role === UserRole.ADMIN) return payment;
+
+        // 2. Board can see payments for their building
+        if (userProfile.role === UserRole.BOARD && payment.building_id === userProfile.building_id) {
+            return payment;
         }
 
-        return payment;
+        // 3. Residents can see payments for their unit (Unit-Centric)
+        if (payment.unit_id === userProfile.unit_id) {
+            return payment;
+        }
+
+        throw new UnauthorizedError('Unauthorized access to payment details');
     }, {
         detail: {
             tags: ['Payments'],
-            summary: 'Get payment details'
+            summary: 'Get payment details',
+            description: 'Allows residents of the same unit, board members of the same building, and admins to view payment details.'
         }
     })
     // Report new payment
