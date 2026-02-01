@@ -12,7 +12,7 @@ import { paymentRoutes } from './modules/payments/presentation/routes';
 // @ts-ignore
 export const app = new Elysia()
     .use(cors({
-        origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
+        origin: ['*'],
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
