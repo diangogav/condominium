@@ -46,7 +46,24 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
             summary: 'Get building by ID'
         }
     })
-    .use(authMiddleware)
+    // Unit Routes (Public for Registration)
+    .get('/:id/units', async ({ params }) => {
+        return await getUnitsByBuilding.execute(params.id);
+    }, {
+        detail: {
+            tags: ['Units'],
+            summary: 'List units for a building'
+        }
+    })
+    // Unit Routes (Public for Registration)
+    .get('/:id/units', async ({ params }) => {
+        return await getUnitsByBuilding.execute(params.id);
+    }, {
+        detail: {
+            tags: ['Units'],
+            summary: 'List units for a building'
+        }
+    })
     .derive(async ({ request }) => {
         // We need the user for admin actions
         const authHeader = request.headers.get('Authorization');
@@ -94,25 +111,8 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
             security: [{ BearerAuth: [] }]
         }
     })
-    .delete('/:id', async ({ params, user }) => {
-        await deleteBuilding.execute(params.id, user.id);
-        return { success: true };
-    }, {
-        detail: {
-            tags: ['Buildings'],
-            summary: 'Delete a building (Admin only)',
-            security: [{ BearerAuth: [] }]
-        }
-    })
-    // Unit Routes
-    .get('/:id/units', async ({ params }) => {
-        return await getUnitsByBuilding.execute(params.id);
-    }, {
-        detail: {
-            tags: ['Units'],
-            summary: 'List units for a building'
-        }
-    })
+
+
     .post('/:id/units', async ({ params, body }) => {
         return await createUnit.execute({
             building_id: params.id,
