@@ -35,7 +35,8 @@ describe('ApprovePayment Use Case', () => {
             amount: 100,
             payment_date: new Date(),
             method: PaymentMethod.PAGO_MOVIL,
-            status: PaymentStatus.PENDING
+            status: PaymentStatus.PENDING,
+            unit: 'A1'
         });
 
         await userRepo.create(admin);
@@ -70,7 +71,8 @@ describe('ApprovePayment Use Case', () => {
             amount: 100,
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
-            status: PaymentStatus.PENDING
+            status: PaymentStatus.PENDING,
+            unit: 'B1'
         });
 
         await userRepo.create(board);
@@ -103,7 +105,8 @@ describe('ApprovePayment Use Case', () => {
             amount: 100,
             payment_date: new Date(),
             method: PaymentMethod.CASH,
-            status: PaymentStatus.PENDING
+            status: PaymentStatus.PENDING,
+            unit: 'B1'
         });
 
         await userRepo.create(board);
@@ -135,7 +138,8 @@ describe('ApprovePayment Use Case', () => {
             amount: 100,
             payment_date: new Date(),
             method: PaymentMethod.PAGO_MOVIL,
-            status: PaymentStatus.PENDING
+            status: PaymentStatus.PENDING,
+            unit: 'C1'
         });
 
         await userRepo.create(resident);
@@ -167,7 +171,8 @@ describe('ApprovePayment Use Case', () => {
             amount: 100,
             payment_date: new Date(),
             method: PaymentMethod.TRANSFER,
-            status: PaymentStatus.PENDING
+            status: PaymentStatus.PENDING,
+            unit: 'A1'
         });
 
         await userRepo.create(admin);

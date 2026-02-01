@@ -18,6 +18,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             proof_url: data.proof_url,
             status: data.status as PaymentStatus,
             periods: data.periods,
+            unit: data.unit,
             notes: data.notes,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
@@ -38,6 +39,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             proof_url: payment.proof_url,
             status: payment.status,
             periods: payment.periods,
+            unit: payment.unit,
             notes: payment.notes,
             updated_at: payment.updated_at,
         };
@@ -99,6 +101,29 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         return data.map(this.toDomain);
     }
 
+    async findByUnit(buildingId: string, unit: string, year?: number): Promise<Payment[]> {
+        let query = supabase
+            .from('payments')
+            .select('*')
+            .eq('building_id', buildingId)
+            .eq('unit', unit)
+            .order('payment_date', { ascending: false });
+
+        if (year) {
+            const startDate = `${year}-01-01`;
+            const endDate = `${year}-12-31`;
+            query = query.gte('payment_date', startDate).lte('payment_date', endDate);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+            throw new DomainError('Error fetching payments for unit', 'DB_ERROR', 500);
+        }
+
+        return data.map(this.toDomain);
+    }
+
     async update(payment: Payment): Promise<Payment> {
         const persistenceData = this.toPersistence(payment);
 
@@ -139,6 +164,9 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         }
         if (filters?.user_id) {
             query = query.eq('user_id', filters.user_id);
+        }
+        if (filters?.unit) {
+            query = query.eq('unit', filters.unit);
         }
 
         const { data, error } = await query;

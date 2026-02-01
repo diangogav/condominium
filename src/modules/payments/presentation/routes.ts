@@ -103,7 +103,8 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         const payment = await createPayment.execute({
             user_id: userId,
-            building_id: targetBuildingId,
+            building_id: body.building_id || userProfile.building_id, // Allow body.building_id to override user's default
+            unit: userProfile.unit, // Add unit from user profile
             amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
             payment_date: new Date(body.date),
             method: body.method as PaymentMethod,
@@ -146,7 +147,8 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
                 building_id: query.building_id,
                 status: query.status,
                 period: query.period,
-                year: query.year
+                year: query.year,
+                unit: query.unit
             }
         });
     }, {
@@ -155,6 +157,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             status: t.Optional(t.String()),
             period: t.Optional(t.String()),
             year: t.Optional(t.String()),
+            unit: t.Optional(t.String()),
         }),
         detail: {
             tags: ['Payments'],

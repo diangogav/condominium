@@ -1,7 +1,7 @@
 import { IPaymentRepository } from '../../domain/repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
 import { SolvencyStatus, PaymentStatus } from '@/core/domain/enums';
-import { NotFoundError } from '@/core/errors';
+import { DomainError, NotFoundError } from '@/core/errors';
 import { Payment } from '../../domain/entities/Payment';
 
 export interface PaymentSummaryDTO {
@@ -42,8 +42,12 @@ export class GetPaymentSummary {
         const startYear = userCreatedAt.getFullYear();
         const startMonth = userCreatedAt.getMonth() + 1; // 1-12
 
-        // Get all payments for current year
-        const payments = await this.paymentRepo.findByUserId(userId, currentYear);
+        if (!user.building_id || !user.unit) {
+            throw new DomainError('User is not assigned to a building or unit', 'USER_ERROR', 400);
+        }
+
+        // Get all payments for the unit (apartment) in the current year
+        const payments = await this.paymentRepo.findByUnit(user.building_id, user.unit, currentYear);
 
         // Get approved payments only
         const approvedPayments = payments.filter(p => p.isApproved());

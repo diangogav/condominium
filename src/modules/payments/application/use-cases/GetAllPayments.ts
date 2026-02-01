@@ -10,6 +10,7 @@ export interface GetAllPaymentsRequest {
         status?: string;
         period?: string;
         year?: string;
+        unit?: string;
     };
 }
 
@@ -34,7 +35,8 @@ export class GetAllPayments {
         // Map string filters to Enums if present
         if (request.filters?.status) filters.status = request.filters.status as any;
         if (request.filters?.period) filters.period = request.filters.period;
-        if (request.filters?.year) filters.year = request.filters.year;
+        if (request.filters?.year) filters.year = parseInt(request.filters.year);
+        if (request.filters?.unit) filters.unit = request.filters.unit;
 
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {

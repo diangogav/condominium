@@ -1,17 +1,22 @@
 import { Elysia, t } from 'elysia';
 import { SupabaseBuildingRepository } from '../infrastructure/repositories/SupabaseBuildingRepository';
+import { SupabaseUnitRepository } from '../infrastructure/repositories/SupabaseUnitRepository';
 import { SupabaseUserRepository } from '@/modules/users/infrastructure/repositories/SupabaseUserRepository';
 import { CreateBuilding } from '../application/use-cases/CreateBuilding';
 import { GetBuildings } from '../application/use-cases/GetBuildings';
 import { GetBuildingById } from '../application/use-cases/GetBuildingById';
 import { UpdateBuilding } from '../application/use-cases/UpdateBuilding';
 import { DeleteBuilding } from '../application/use-cases/DeleteBuilding';
+import { CreateUnit } from '../application/use-cases/CreateUnit';
+import { BatchCreateUnits } from '../application/use-cases/BatchCreateUnits';
+import { GetUnitsByBuilding } from '../application/use-cases/GetUnitsByBuilding';
 import { authMiddleware } from '@/modules/auth/presentation/middleware';
 import { supabase } from '@/infrastructure/supabase';
 import { UnauthorizedError } from '@/core/errors';
 
 // Initialize repositories
 const buildingRepo = new SupabaseBuildingRepository();
+const unitRepo = new SupabaseUnitRepository();
 const userRepo = new SupabaseUserRepository();
 
 // Initialize use cases
@@ -20,6 +25,9 @@ const getBuildings = new GetBuildings(buildingRepo);
 const getBuildingById = new GetBuildingById(buildingRepo);
 const updateBuilding = new UpdateBuilding(buildingRepo, userRepo);
 const deleteBuilding = new DeleteBuilding(buildingRepo, userRepo);
+const createUnit = new CreateUnit(unitRepo, buildingRepo);
+const batchCreateUnits = new BatchCreateUnits(unitRepo, buildingRepo);
+const getUnitsByBuilding = new GetUnitsByBuilding(unitRepo);
 
 export const buildingRoutes = new Elysia({ prefix: '/buildings' })
     .get('/', async () => {
@@ -93,6 +101,51 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
         detail: {
             tags: ['Buildings'],
             summary: 'Delete a building (Admin only)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    // Unit Routes
+    .get('/:id/units', async ({ params }) => {
+        return await getUnitsByBuilding.execute(params.id);
+    }, {
+        detail: {
+            tags: ['Units'],
+            summary: 'List units for a building'
+        }
+    })
+    .post('/:id/units', async ({ params, body }) => {
+        return await createUnit.execute({
+            building_id: params.id,
+            name: body.name,
+            floor: body.floor,
+            aliquot: body.aliquot
+        });
+    }, {
+        body: t.Object({
+            name: t.String({ minLength: 1 }),
+            floor: t.Optional(t.String()),
+            aliquot: t.Optional(t.Number())
+        }),
+        detail: {
+            tags: ['Units'],
+            summary: 'Create a single unit (Admin only)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    .post('/:id/units/batch', async ({ params, body }) => {
+        return await batchCreateUnits.execute({
+            building_id: params.id,
+            floors: body.floors,
+            unitsPerFloor: body.unitsPerFloor
+        });
+    }, {
+        body: t.Object({
+            floors: t.Array(t.String()),
+            unitsPerFloor: t.Array(t.String())
+        }),
+        detail: {
+            tags: ['Units'],
+            summary: 'Batch create units (Admin only)',
             security: [{ BearerAuth: [] }]
         }
     });

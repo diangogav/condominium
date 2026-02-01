@@ -29,22 +29,18 @@ describe('CreatePayment Use Case', () => {
     });
 
     it('should fail if amount is zero or negative', async () => {
-        expect(async () => {
-            await createPayment.execute({
-                user_id: 'user-1',
-                amount: 0,
-                payment_date: new Date(),
-                method: PaymentMethod.CASH
-            });
-        }).toThrow();
+        await expect(createPayment.execute({
+            user_id: 'user-1',
+            amount: 0,
+            payment_date: new Date(),
+            method: PaymentMethod.CASH
+        })).rejects.toThrow();
 
-        expect(async () => {
-            await createPayment.execute({
-                user_id: 'user-1',
-                amount: -50,
-                payment_date: new Date(),
-                method: PaymentMethod.TRANSFER
-            });
-        }).toThrow();
+        await expect(createPayment.execute({
+            user_id: 'user-1',
+            amount: -50,
+            payment_date: new Date(),
+            method: PaymentMethod.TRANSFER
+        })).rejects.toThrow();
     });
 });
