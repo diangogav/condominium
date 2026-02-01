@@ -10,6 +10,7 @@ import { DeleteBuilding } from '../application/use-cases/DeleteBuilding';
 import { CreateUnit } from '../application/use-cases/CreateUnit';
 import { BatchCreateUnits } from '../application/use-cases/BatchCreateUnits';
 import { GetUnitsByBuilding } from '../application/use-cases/GetUnitsByBuilding';
+import { GetUnitById } from '../application/use-cases/GetUnitById';
 import { authMiddleware } from '@/modules/auth/presentation/middleware';
 import { supabase } from '@/infrastructure/supabase';
 import { UnauthorizedError } from '@/core/errors';
@@ -28,6 +29,7 @@ const deleteBuilding = new DeleteBuilding(buildingRepo, userRepo);
 const createUnit = new CreateUnit(unitRepo, buildingRepo);
 const batchCreateUnits = new BatchCreateUnits(unitRepo, buildingRepo);
 const getUnitsByBuilding = new GetUnitsByBuilding(unitRepo);
+const getUnitById = new GetUnitById(unitRepo);
 
 export const buildingRoutes = new Elysia({ prefix: '/buildings' })
     .get('/', async () => {
@@ -55,13 +57,14 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
             summary: 'List units for a building'
         }
     })
-    // Unit Routes (Public for Registration)
-    .get('/:id/units', async ({ params }) => {
-        return await getUnitsByBuilding.execute(params.id);
+    // Get single unit by ID
+    .get('/units/:id', async ({ params }) => {
+        const unit = await getUnitById.execute(params.id);
+        return unit.toJSON();
     }, {
         detail: {
             tags: ['Units'],
-            summary: 'List units for a building'
+            summary: 'Get unit by ID'
         }
     })
     .derive(async ({ request }) => {
