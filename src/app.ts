@@ -9,6 +9,7 @@ import { userRoutes } from './modules/users/presentation/routes';
 import { buildingRoutes } from './modules/buildings/presentation/routes';
 import { paymentRoutes } from './modules/payments/presentation/routes';
 import { billingRoutes } from './modules/billing/presentation/routes';
+import { pettyCashRoutes } from './modules/petty-cash/presentation/routes';
 
 // @ts-ignore
 export const app = new Elysia()
@@ -29,7 +30,8 @@ export const app = new Elysia()
                 { name: 'Auth', description: 'Authentication endpoints' },
                 { name: 'Users', description: 'User profile management' },
                 { name: 'Buildings', description: 'Building information' },
-                { name: 'Payments', description: 'Payment management' }
+                { name: 'Payments', description: 'Payment management' },
+                { name: 'Petty Cash', description: 'Petty Cash management' }
             ],
             components: {
                 securitySchemes: {
@@ -56,6 +58,7 @@ export const app = new Elysia()
     .use(buildingRoutes)
     .use(paymentRoutes)
     .use(billingRoutes)
+    .use(pettyCashRoutes)
     .derive(({ request }) => {
         return {
             requestId: request.headers.get('x-request-id') || randomUUID()

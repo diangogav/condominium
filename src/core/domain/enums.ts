@@ -28,3 +28,17 @@ export enum SolvencyStatus {
     PENDING = 'PENDING',
     OVERDUE = 'OVERDUE'
 }
+
+export enum PettyCashTransactionType {
+    INCOME = 'INCOME',
+    EXPENSE = 'EXPENSE'
+}
+
+export enum PettyCashCategory {
+    REPAIR = 'Reparación',
+    CLEANING = 'Limpieza',
+    EMERGENCY = 'Emergencia',
+    OFFICE = 'Oficina',
+    UTILITIES = 'Servicios',
+    OTHER = 'Otro'
+}
