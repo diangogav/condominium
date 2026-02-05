@@ -22,7 +22,7 @@ describe('UpdateBuilding Use Case', () => {
             id: 'admin-1',
             email: 'admin@test.com',
             name: 'Admin',
-            unit_id: 'A1',
+
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
         });
@@ -51,7 +51,7 @@ describe('UpdateBuilding Use Case', () => {
             id: 'resident-1',
             email: 'resident@test.com',
             name: 'Resident',
-            unit_id: '1',
+
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE
         });

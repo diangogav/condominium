@@ -34,7 +34,8 @@ export class GetPaymentById {
 
         // 3. Board member can see payments from their building
         if (requester.isBoardMember()) {
-            if (requester.building_id === payment.building_id) {
+            const validBuildingIds = requester.units.map(u => u.building_id);
+            if (validBuildingIds.includes(payment.building_id)) {
                 return payment;
             }
         }

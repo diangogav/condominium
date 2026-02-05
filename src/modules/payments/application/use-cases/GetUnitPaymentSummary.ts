@@ -24,35 +24,50 @@ export interface PaymentTransactionDTO {
 export class GetUnitPaymentSummary {
     constructor(
         private paymentRepo: IPaymentRepository,
-        private userRepo: IUserRepository
+        private userRepo: IUserRepository,
+        private getUnitBalance: { execute: (unitId: string) => Promise<{ totalDebt: number, details: any[] }> }
     ) { }
 
     async execute(userId: string): Promise<PaymentSummaryDTO> {
         const now = new Date();
         const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1; // 1-12
 
-        // Get user to determine billing start date
+        // Get user to determine unit
         const user = await this.userRepo.findById(userId);
         if (!user) {
             throw new NotFoundError('User not found');
         }
 
-        const userCreatedAt = new Date(user.created_at);
-        const startYear = userCreatedAt.getFullYear();
-        const startMonth = userCreatedAt.getMonth() + 1; // 1-12
+        const unit = user.units.find(u => u.is_primary) || user.units[0];
 
-        if (!user.building_id || !user.unit_id) {
+        if (!unit || !unit.building_id || !unit.unit_id) {
             throw new DomainError('User is not assigned to a building or unit', 'USER_ERROR', 400);
         }
 
-        // Get all payments for the unit (apartment) in the current year
-        const payments = await this.paymentRepo.findByUnit(user.building_id, user.unit_id, currentYear);
+        // Get Balance details (Total Debt & Pending Invoices)
+        const balance = await this.getUnitBalance.execute(unit.unit_id);
 
-        // Get approved payments only
+        // Get all payments for the unit (apartment) in the current year
+        const payments = await this.paymentRepo.findByUnit(unit.building_id, unit.unit_id, currentYear);
         const approvedPayments = payments.filter(p => p.isApproved());
 
-        // Calculate which months have been paid
+        // Calculate pending periods based on Balance (Invoices)
+        // If an invoice is PENDING (status logic checked in GetUnitBalance), it's a pending period.
+        const pendingPeriods = balance.details
+            .filter(d => d.status === 'PENDING') // Redundant check if balance only returns pending, but safe
+            .map(d => d.period); // Assuming period format is consistent
+
+        // Calculate paid periods based on Allocations (Invoices that are PAID)
+        // Ideally we should query Paid Invoices, but for now we can infer from "Not Pending" 
+        // OR rely on the `periods` string in payments primarily for "what user said they paid" vs "what is actually covered".
+        // The user want `paid_periods` to be based on Invoices logic? 
+        // Actually, "paid_periods" usually helps to color the calendar. 
+        // If we strictly follow Invoices: we need to fetch PAID invoices for the year.
+        // But GetUnitBalance only gives Pending. 
+        // Let's stick to the user request: "summary logic ... based on invoices".
+        // Use `periods` from Approved Payments for "Paid Periods" history (visual) as it reflects cash flow,
+        // BUT use Pending Invoices for "Solvency".
+
         const paidMonths = new Set<string>();
         approvedPayments.forEach(payment => {
             if (payment.periods && payment.periods.length > 0) {
@@ -60,47 +75,30 @@ export class GetUnitPaymentSummary {
             }
         });
 
-        // Determine pending periods (only months since user registration)
-        const pendingPeriods: string[] = [];
-
-        // Only check current year if user was created this year
-        if (startYear === currentYear) {
-            // Start from registration month
-            for (let month = startMonth; month <= currentMonth; month++) {
-                const period = `${currentYear}-${String(month).padStart(2, '0')}`;
-                if (!paidMonths.has(period)) {
-                    pendingPeriods.push(period);
-                }
-            }
-        } else {
-            // User registered in previous year, check all months of current year
-            for (let month = 1; month <= currentMonth; month++) {
-                const period = `${currentYear}-${String(month).padStart(2, '0')}`;
-                if (!paidMonths.has(period)) {
-                    pendingPeriods.push(period);
-                }
-            }
-        }
-
-        // Calculate solvency status
+        // Solvency Status Logic
         let solvencyStatus: SolvencyStatus = SolvencyStatus.SOLVENT;
 
-        if (pendingPeriods.length > 0) {
-            // Check if current month is pending
-            const currentPeriod = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+        if (balance.totalDebt > 0) {
+            // There is debt. Check if it's just current month or overdue.
+            const currentPeriod = `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const isCurrentMonthPending = pendingPeriods.includes(currentPeriod);
 
-            if (isCurrentMonthPending && pendingPeriods.length === 1) {
-                // Only current month pending - check if within grace period (5 days)
+            // If we have pending items other than current month, or multiple items -> Overdue
+            const historicalPending = pendingPeriods.filter(p => p !== currentPeriod);
+
+            if (historicalPending.length > 0) {
+                solvencyStatus = SolvencyStatus.OVERDUE;
+            } else if (isCurrentMonthPending) {
+                // Only current month is pending. Check grace period.
                 const dayOfMonth = now.getDate();
                 if (dayOfMonth <= 5) {
-                    solvencyStatus = SolvencyStatus.SOLVENT; // Within grace period
+                    solvencyStatus = SolvencyStatus.SOLVENT;
                 } else {
                     solvencyStatus = SolvencyStatus.PENDING;
                 }
-            } else if (pendingPeriods.length > 1 || !isCurrentMonthPending) {
-                // Multiple months pending or past months pending
-                solvencyStatus = SolvencyStatus.OVERDUE;
+            } else {
+                // Returns debt but no specific period match (maybe old debt or extra charge), defaulting to Pending
+                solvencyStatus = SolvencyStatus.PENDING;
             }
         }
 

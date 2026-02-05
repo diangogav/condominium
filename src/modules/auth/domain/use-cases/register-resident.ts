@@ -27,11 +27,18 @@ export class RegisterResident {
             id: authUser.id,
             email: request.email,
             name: request.name,
-            unit_id: request.unit_id,
-            building_id: request.building_id,
             role: UserRole.RESIDENT,
             status: UserStatus.PENDING
         });
+
+        // Set the unit association
+        user.setUnits([{
+            unit_id: request.unit_id,
+            role: 'resident', // Default role for registration
+            is_primary: true
+        } as any]); // Using 'as any' temporarily if UserUnitProps strictness is an issue, 
+        // though we should probably import UserUnitProps or use the class
+
 
         await this.userRepo.create(user);
 

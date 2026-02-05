@@ -38,7 +38,10 @@ export class ApprovePayment {
 
         // Board members can only approve payments from their building
         if (approver.isBoardMember()) {
-            if (approver.building_id !== payment.building_id) {
+            const hasAccess = approver.units.some(u => u.building_id === payment.building_id);
+            if (!hasAccess) {
+                // Determine if we need to strictly fail or if checking units is enough.
+                // If units array is empty on approver, they effectively "have no building".
                 throw new ForbiddenError('You can only approve payments from your building');
             }
         }
@@ -64,7 +67,8 @@ export class ApprovePayment {
 
         // Board members can only reject payments from their building
         if (approver.isBoardMember()) {
-            if (approver.building_id !== payment.building_id) {
+            const hasAccess = approver.units.some(u => u.building_id === payment.building_id);
+            if (!hasAccess) {
                 throw new ForbiddenError('You can only reject payments from your building');
             }
         }

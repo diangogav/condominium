@@ -1,13 +1,14 @@
 import { UserRole, UserStatus } from '@/core/domain/enums';
 import { DomainError } from '@/core/errors';
 
+import { UserUnit } from './UserUnit';
+
 export interface UserProps {
     id: string;
     email: string;
     name: string;
     phone?: string;
-    unit_id?: string;
-    building_id?: string;
+    units?: UserUnit[]; // New multi-unit support
     role: UserRole;
     status: UserStatus;
     created_at?: Date;
@@ -22,18 +23,32 @@ export class User {
         if (!props.updated_at) {
             this.props.updated_at = new Date();
         }
+        if (!props.units) {
+            this.props.units = [];
+        }
     }
 
     get id(): string { return this.props.id; }
     get email(): string { return this.props.email; }
     get name(): string { return this.props.name; }
     get phone(): string | undefined { return this.props.phone; }
-    get unit_id(): string | undefined { return this.props.unit_id; }
-    get building_id(): string | undefined { return this.props.building_id; }
+
+    // Multi-apartment support
+    get units(): UserUnit[] { return this.props.units || []; }
+
+    // Helper to get primary unit ID if needed for backward compat in logic
+    get primaryUnitId(): string | undefined {
+        return this.primaryUnit?.unit_id || this.units[0]?.unit_id;
+    }
+
     get role(): UserRole { return this.props.role; }
     get status(): UserStatus { return this.props.status; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }
+
+    get primaryUnit(): UserUnit | undefined {
+        return this.units.find(u => u.is_primary);
+    }
 
     isAdmin(): boolean {
         return this.props.role === UserRole.ADMIN;
@@ -62,7 +77,7 @@ export class User {
         return this.props.status === UserStatus.ACTIVE;
     }
 
-    updateProfile(data: Partial<Omit<UserProps, 'id' | 'email' | 'role' | 'status' | 'created_at' | 'updated_at'>>): void {
+    updateProfile(data: Partial<Omit<UserProps, 'id' | 'email' | 'role' | 'status' | 'created_at' | 'updated_at' | 'units'>>): void {
         this.props = {
             ...this.props,
             ...data,
@@ -72,6 +87,11 @@ export class User {
 
     changeRole(newRole: UserRole): void {
         this.props.role = newRole;
+        this.props.updated_at = new Date();
+    }
+
+    setUnits(units: UserUnit[]) {
+        this.props.units = units;
         this.props.updated_at = new Date();
     }
 

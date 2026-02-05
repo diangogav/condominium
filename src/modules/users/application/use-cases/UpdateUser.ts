@@ -28,8 +28,14 @@ export class UpdateUser {
             if (!isAdmin && !isBoard) {
                 throw new ForbiddenError('You can only update your own profile');
             }
-            if (isBoard && (updater.building_id !== targetUser.building_id)) {
-                throw new ForbiddenError('Board members can only update users in their building');
+            if (isBoard) {
+                const updaterBuildings = updater.units.map(u => u.building_id).filter(Boolean);
+                const targetBuildings = targetUser.units.map(u => u.building_id).filter(Boolean);
+                const hasCommonBuilding = updaterBuildings.some(ub => targetBuildings.includes(ub));
+
+                if (!hasCommonBuilding) {
+                    throw new ForbiddenError('Board members can only update users in their building');
+                }
             }
         }
 

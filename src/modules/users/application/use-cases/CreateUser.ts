@@ -42,10 +42,26 @@ export class CreateUser {
             name: request.name,
             role: request.role,
             status: UserStatus.ACTIVE, // Created by admin = auto active
-            building_id: request.building_id,
-            unit_id: request.unit_id,
             phone: request.phone
         });
+
+        // Assign unit if provided
+        if (request.unit_id) {
+            newUser.setUnits([{
+                unit_id: request.unit_id,
+                // building_id is theoretically retrievable from request.building_id or via DB.
+                // For now, we rely on what's passed or what's needed.
+                // Actually, if we pass building_id in request, we can store it in UserUnit.
+                building_id: request.building_id,
+
+                role: request.role === UserRole.RESIDENT ? 'resident' : 'owner',
+                // Simplification: Residents are residents, others (Board/Admin) might be owners 
+                // or just have access. Let's assume 'owner' for board/admin for now or 'resident' if unspecified.
+                // Better logic: If role is Resident -> Resident. If Owner (not a role, but a relation) -> Owner.
+                // Use case doesn't specify relation type. Defaulting to 'resident' or checking role.
+                is_primary: true
+            } as any]);
+        }
 
         return await this.userRepo.create(newUser);
     }

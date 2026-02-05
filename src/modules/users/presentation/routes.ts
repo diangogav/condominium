@@ -21,6 +21,36 @@ const approveUser = new ApproveUser(userRepo);
 const deleteUser = new DeleteUser(userRepo);
 const createUser = new CreateUser(userRepo, authRepo);
 
+// New Phase 2 Use Cases
+import { AssignUnitToUser } from '../application/use-cases/AssignUnitToUser';
+import { GetUserUnits } from '../application/use-cases/GetUserUnits';
+
+const assignUnitToUser = new AssignUnitToUser(userRepo);
+const getUserUnits = new GetUserUnits(userRepo);
+
+const UserUnitSchema = t.Object({
+    unit_id: t.String(),
+    building_id: t.Optional(t.String()),
+    role: t.String(),
+    is_primary: t.Boolean()
+});
+
+const UserResponse = t.Object({
+    id: t.String(),
+    email: t.String(),
+    name: t.String(),
+    role: t.String(),
+    status: t.String(),
+    phone: t.Optional(t.Union([t.String(), t.Null()])),
+    units: t.Array(UserUnitSchema),
+    created_at: t.Optional(t.Any()), // Date
+    updated_at: t.Optional(t.Any())  // Date
+});
+
+const SuccessResponse = t.Object({
+    success: t.Boolean()
+});
+
 export const userRoutes = new Elysia({ prefix: '/users' })
     .derive(async ({ request }) => {
         const authHeader = request.headers.get('Authorization');
@@ -42,6 +72,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         // Use case calling itself as target
         return await getUserById.execute({ targetId: user.id, requesterId: user.id });
     }, {
+        response: UserResponse,
         detail: {
             tags: ['Users'],
             summary: 'Get current user profile'
@@ -59,6 +90,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             phone: t.Optional(t.String({ examples: ['+58 412-1234567', '04121234567'] })),
             settings: t.Optional(t.Any())
         }),
+        response: UserResponse,
         detail: {
             tags: ['Users'],
             summary: 'Update user profile',
@@ -71,6 +103,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             requesterId: user.id,
             filters: {
                 building_id: query.building_id,
+                unit_id: query.unit_id,
                 role: query.role,
                 status: query.status
             }
@@ -78,9 +111,11 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }, {
         query: t.Object({
             building_id: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
             role: t.Optional(t.String()),
             status: t.Optional(t.String()),
         }),
+        response: t.Array(UserResponse),
         detail: {
             tags: ['Users'],
             summary: 'List all users (Admin/Board)',
@@ -94,6 +129,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             requesterId: user.id
         });
     }, {
+        response: UserResponse,
         detail: {
             tags: ['Users'],
             summary: 'Get user by ID (Admin/Board)',
@@ -115,6 +151,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             status: t.Optional(t.String()),
             building_id: t.Optional(t.String()),
         }),
+        response: UserResponse,
         detail: {
             tags: ['Users'],
             summary: 'Update user (Admin/Board)',
@@ -129,9 +166,41 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         });
         return { success: true };
     }, {
+        response: SuccessResponse,
         detail: {
             tags: ['Users'],
             summary: 'Approve user registration (Admin/Board)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    .get('/:id/units', async ({ params }) => {
+        return await getUserUnits.execute(params.id);
+    }, {
+        response: t.Array(UserUnitSchema),
+        detail: {
+            tags: ['Users'],
+            summary: 'Get user units',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    .post('/:id/units', async ({ params, body }) => {
+        await assignUnitToUser.execute({
+            userId: params.id,
+            unitId: body.unit_id,
+            role: body.role as any,
+            isPrimary: body.is_primary ?? false
+        });
+        return { success: true };
+    }, {
+        body: t.Object({
+            unit_id: t.String(),
+            role: t.Union([t.Literal('owner'), t.Literal('resident')]),
+            is_primary: t.Optional(t.Boolean())
+        }),
+        response: SuccessResponse,
+        detail: {
+            tags: ['Users'],
+            summary: 'Assign unit to user (Admin/Board)',
             security: [{ BearerAuth: [] }]
         }
     })
@@ -156,6 +225,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
             unit_id: t.Optional(t.String()),
             phone: t.Optional(t.String())
         }),
+        response: UserResponse,
         detail: {
             tags: ['Users'],
             summary: 'Create new user (Admin only)',
@@ -170,6 +240,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         });
         return { success: true };
     }, {
+        response: SuccessResponse,
         detail: {
             tags: ['Users'],
             summary: 'Delete user (Admin only)',

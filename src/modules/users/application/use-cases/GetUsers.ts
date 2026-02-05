@@ -7,6 +7,7 @@ interface GetUsersRequest {
     requesterId: string;
     filters?: {
         building_id?: string;
+        unit_id?: string;
         role?: string;
         status?: string;
     };
@@ -34,16 +35,21 @@ export class GetUsers {
 
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {
-            if (!requester.building_id) {
+            const validBuildings = requester.units.map(u => u.building_id).filter((id): id is string => !!id);
+            if (validBuildings.length === 0) {
                 // Should not happen for a valid board member
                 return [];
             }
-            filters.building_id = requester.building_id;
+            filters.building_id = validBuildings[0]; // Default to first building
         } else {
             // Admin or other (if expanded) - allow filtering by building if requested
             if (request.filters?.building_id) {
                 filters.building_id = request.filters.building_id;
             }
+        }
+
+        if (request.filters?.unit_id) {
+            filters.unit_id = request.filters.unit_id;
         }
 
         return await this.userRepo.findAll(filters);

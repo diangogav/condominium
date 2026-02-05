@@ -33,7 +33,11 @@ export class GetUserById {
         }
 
         if (requester.isBoardMember()) {
-            if (requester.building_id !== targetUser.building_id) {
+            const requesterBuildings = requester.units.map(u => u.building_id).filter(Boolean);
+            const targetBuildings = targetUser.units.map(u => u.building_id).filter(Boolean);
+            const hasCommonBuilding = requesterBuildings.some(rb => targetBuildings.includes(rb));
+
+            if (!hasCommonBuilding) {
                 throw new ForbiddenError('You can only view users from your building');
             }
         }

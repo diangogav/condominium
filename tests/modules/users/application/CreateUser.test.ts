@@ -27,7 +27,7 @@ describe('CreateUser Use Case', () => {
             name: 'Admin User',
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE,
-            building_id: BUILDING_ID,
+
             created_at: new Date(),
             updated_at: new Date()
         }));
@@ -39,7 +39,7 @@ describe('CreateUser Use Case', () => {
             name: 'Resident User',
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE,
-            building_id: BUILDING_ID,
+
             created_at: new Date(),
             updated_at: new Date()
         }));

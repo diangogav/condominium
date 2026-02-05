@@ -22,11 +22,11 @@ describe('ApprovePayment Use Case', () => {
             id: 'admin-1',
             email: 'admin@test.com',
             name: 'Admin',
-            unit_id: 'A1',
-            building_id: 'building-1',
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
         });
+        // Admin doesn't necessarily need units, but for consistency:
+        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -58,11 +58,10 @@ describe('ApprovePayment Use Case', () => {
             id: 'board-1',
             email: 'board@test.com',
             name: 'Board Member',
-            unit_id: 'B1',
-            building_id: 'building-1',
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
+        board.setUnits([{ unit_id: 'B1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -92,11 +91,10 @@ describe('ApprovePayment Use Case', () => {
             id: 'board-1',
             email: 'board@test.com',
             name: 'Board Member',
-            unit_id: 'B1',
-            building_id: 'building-2',
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
+        board.setUnits([{ unit_id: 'B1', building_id: 'building-2', role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -125,11 +123,10 @@ describe('ApprovePayment Use Case', () => {
             id: 'resident-1',
             email: 'resident@test.com',
             name: 'Resident',
-            unit_id: 'C1',
-            building_id: 'building-1',
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE
         });
+        resident.setUnits([{ unit_id: 'C1', building_id: 'building-1', role: 'resident', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -158,11 +155,10 @@ describe('ApprovePayment Use Case', () => {
             id: 'admin-1',
             email: 'admin@test.com',
             name: 'Admin',
-            unit_id: 'A1',
-            building_id: 'building-1',
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
         });
+        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',

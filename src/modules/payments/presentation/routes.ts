@@ -1,14 +1,15 @@
 import { Elysia, t } from 'elysia';
 import { SupabasePaymentRepository } from '../infrastructure/repositories/SupabasePaymentRepository';
 import { SupabaseUserRepository } from '@/modules/users/infrastructure/repositories/SupabaseUserRepository';
-import { CreatePayment } from '../application/use-cases/CreatePayment';
+
 import { ApprovePayment } from '../application/use-cases/ApprovePayment';
 import { GetUnitPayments } from '../application/use-cases/GetUnitPayments';
 import { GetUnitPaymentSummary } from '../application/use-cases/GetUnitPaymentSummary';
 import { GetAllPayments } from '../application/use-cases/GetAllPayments';
+import { GetUnitBalance } from '@/modules/billing/application/use-cases/GetUnitBalance';
 import { StorageService } from '@/infrastructure/storage';
 import { supabase } from '@/infrastructure/supabase';
-import { UnauthorizedError } from '@/core/errors';
+import { UnauthorizedError, NotFoundError } from '@/core/errors';
 import { PaymentMethod, UserRole } from '@/core/domain/enums';
 
 // Initialize repositories and use cases
@@ -16,11 +17,69 @@ const paymentRepo = new SupabasePaymentRepository();
 const userRepo = new SupabaseUserRepository();
 const storageService = new StorageService();
 
-const createPayment = new CreatePayment(paymentRepo, userRepo);
+// New Repo for allocations
+import { SupabaseInvoiceRepository } from '@/modules/billing/infrastructure/repositories/SupabaseInvoiceRepository';
+import { SupabasePaymentAllocationRepository } from '@/modules/billing/infrastructure/repositories/SupabasePaymentAllocationRepository';
+const invoiceRepo = new SupabaseInvoiceRepository();
+const allocationRepo = new SupabasePaymentAllocationRepository();
+const getUnitBalance = new GetUnitBalance(invoiceRepo, allocationRepo);
+
 const approvePayment = new ApprovePayment(paymentRepo, userRepo);
 const getUnitPayments = new GetUnitPayments(paymentRepo, userRepo);
-const getUnitPaymentSummary = new GetUnitPaymentSummary(paymentRepo, userRepo);
+const getUnitPaymentSummary = new GetUnitPaymentSummary(paymentRepo, userRepo, getUnitBalance);
 const getAllPayments = new GetAllPayments(paymentRepo, userRepo);
+
+// Updated Creation Use Case
+import { RegisterPayment } from '../application/use-cases/RegisterPayment';
+const registerPayment = new RegisterPayment(paymentRepo, invoiceRepo, allocationRepo);
+
+const PaymentSchema = t.Object({
+    id: t.String(),
+    amount: t.Number(),
+    currency: t.Optional(t.String()),
+    payment_date: t.Any(), // Date object or string
+    status: t.String(),
+    method: t.String(),
+    reference: t.Optional(t.String()),
+    bank: t.Optional(t.String()),
+    unit_id: t.String(),
+    building_id: t.Optional(t.String()),
+    proof_url: t.Optional(t.String()),
+    notes: t.Optional(t.String()),
+    periods: t.Optional(t.Array(t.String())),
+    allocations: t.Optional(t.Array(t.Any())),
+    created_at: t.Optional(t.Any()),
+    updated_at: t.Optional(t.Any()),
+    user: t.Optional(t.Object({
+        id: t.String(),
+        name: t.String()
+    }))
+});
+
+const PaymentTransactionSchema = t.Object({
+    id: t.String(),
+    amount: t.Number(),
+    payment_date: t.String(),
+    method: t.String(),
+    status: t.String(),
+    periods: t.Optional(t.Array(t.String())),
+    user: t.Optional(t.Object({
+        id: t.String(),
+        name: t.String()
+    }))
+});
+
+const PaymentSummarySchema = t.Object({
+    solvency_status: t.String(),
+    last_payment_date: t.Union([t.String(), t.Null()]),
+    pending_periods: t.Array(t.String()),
+    paid_periods: t.Array(t.String()),
+    recent_transactions: t.Array(PaymentTransactionSchema)
+});
+
+const SuccessResponse = t.Object({
+    success: t.Boolean()
+});
 
 export const paymentRoutes = new Elysia({ prefix: '/payments' })
     .derive(async ({ request }) => {
@@ -42,11 +101,17 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get user's payment history
     .get('/', async ({ user, query }) => {
         const year = query.year ? parseInt(query.year) : undefined;
-        return await getUnitPayments.execute(user.id, year);
+        return await getUnitPayments.execute(user.id, year, {
+            unitId: query.unit_id,
+            buildingId: query.building_id
+        });
     }, {
         query: t.Object({
-            year: t.Optional(t.String())
+            year: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
+            building_id: t.Optional(t.String())
         }),
+        response: t.Array(PaymentSchema),
         detail: {
             tags: ['Payments'],
             summary: 'Get user payment history'
@@ -56,6 +121,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     .get('/summary', async ({ user }) => {
         return await getUnitPaymentSummary.execute(user.id);
     }, {
+        response: PaymentSummarySchema,
         detail: {
             tags: ['Payments'],
             summary: 'Get payment summary with solvency status',
@@ -65,7 +131,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get payment by ID
     .get('/:id', async ({ params, user }) => {
         const payment = await paymentRepo.findById(params.id);
-        if (!payment) return null;
+        if (!payment) throw new NotFoundError('Payment not found');
 
         // Get user profile for authorization
         const userProfile = await userRepo.findById(user.id);
@@ -76,17 +142,24 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         if (userProfile.role === UserRole.ADMIN) return payment;
 
         // 2. Board can see payments for their building
-        if (userProfile.role === UserRole.BOARD && payment.building_id === userProfile.building_id) {
-            return payment;
+        // 2. Board can see payments for their building
+        if (userProfile.role === UserRole.BOARD) {
+            const authorizedBuildings = userProfile.units.map(u => u.building_id);
+            if (authorizedBuildings.includes(payment.building_id)) {
+                return payment;
+            }
         }
 
         // 3. Residents can see payments for their unit (Unit-Centric)
-        if (payment.unit_id === userProfile.unit_id) {
+        // Check if the payment belongs to one of the user's units
+        const userUnitIds = userProfile.units.map(u => u.unit_id);
+        if (userUnitIds.includes(payment.unit_id)) {
             return payment;
         }
 
         throw new UnauthorizedError('Unauthorized access to payment details');
     }, {
+        response: t.Union([PaymentSchema, t.Null()]),
         detail: {
             tags: ['Payments'],
             summary: 'Get payment details',
@@ -109,7 +182,11 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             proofUrl = await storageService.uploadPaymentProof(body.proof_image, userId);
         }
 
-        const targetBuildingId = body.building_id || userProfile.building_id;
+        const primaryUnit = userProfile.units.find(u => u.is_primary) || userProfile.units[0];
+        const defaultBuildingId = primaryUnit?.building_id;
+        const defaultUnitId = primaryUnit?.unit_id;
+
+        const targetBuildingId = body.building_id || defaultBuildingId;
 
         // Normalize periods to array
         let periods: string[] | undefined;
@@ -117,17 +194,24 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             periods = Array.isArray(body.periods) ? body.periods : [body.periods];
         }
 
-        const payment = await createPayment.execute({
-            user_id: userId,
-            building_id: body.building_id || userProfile.building_id, // Allow body.building_id to override user's default
-            // unit_id inferred in use case
+        const payment = await registerPayment.execute({
+            userId: userId,
+            unitId: body.unit_id || defaultUnitId || '', // Fallback
+            buildingId: targetBuildingId, // FIXED: use targetBuildingId instead of body.building_id
+            // If user has multiple units, frontend MUST send unit_id.
+            // The old flow relied on inferred or single unit.
             amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
-            payment_date: new Date(body.date),
+            paymentDate: new Date(body.date),
             method: body.method as PaymentMethod,
             reference: body.reference,
             bank: body.bank,
-            proof_url: proofUrl,
-            periods: periods
+            proofUrl: proofUrl,
+            notes: body.notes,
+            periods: periods, // ADDED: pass periods to use case
+            allocations: body.allocations?.map(a => ({
+                invoiceId: a.invoice_id,
+                amount: a.amount
+            }))
         });
 
         console.log("payment.toJSON()", payment.toJSON())
@@ -146,9 +230,17 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             bank: t.Optional(t.String({ examples: ['Banco de Venezuela', 'Banesco', 'Mercantil'] })),
             proof_image: t.Optional(t.File()),
             periods: t.Optional(t.Union([t.String(), t.Array(t.String())], { examples: ['2026-01', ['2026-01', '2026-02']] })),
-            building_id: t.Optional(t.String())
+            building_id: t.Optional(t.String()),
+            unit_id: t.Optional(t.String()),
+            notes: t.Optional(t.String()),
+            // Allocation Support
+            allocations: t.Optional(t.Array(t.Object({
+                invoice_id: t.String(),
+                amount: t.Number()
+            })))
         }),
         type: 'multipart/form-data',
+        response: PaymentSchema,
         detail: {
             tags: ['Payments'],
             summary: 'Report a new payment',
@@ -175,6 +267,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             year: t.Optional(t.String()),
             unit_id: t.Optional(t.String()),
         }),
+        response: t.Array(PaymentSchema),
         detail: {
             tags: ['Payments'],
             summary: 'List all payments (Admin/Board)',
@@ -205,6 +298,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             notes: t.Optional(t.String()),
             approved_periods: t.Optional(t.Array(t.String()))
         }),
+        response: SuccessResponse,
         detail: {
             tags: ['Payments'],
             summary: 'Update payment status (Admin/Board)',

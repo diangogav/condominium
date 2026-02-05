@@ -22,6 +22,10 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             notes: data.notes,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
+            user: data.profiles ? {
+                id: data.profiles.id,
+                name: data.profiles.name
+            } : undefined
         };
         return new Payment(props);
     }
@@ -54,7 +58,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         const { data, error } = await supabase
             .from('payments')
             .insert(persistenceData)
-            .select()
+            .select('*, profiles(id, name)')
             .single();
 
         if (error) {
@@ -67,7 +71,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findById(id: string): Promise<Payment | null> {
         const { data, error } = await supabase
             .from('payments')
-            .select('*')
+            .select('*, profiles(id, name)')
             .eq('id', id)
             .single();
 
@@ -82,7 +86,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findByUserId(userId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*')
+            .select('*, profiles(id, name)')
             .eq('user_id', userId)
             .order('payment_date', { ascending: false });
 
@@ -104,10 +108,18 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findByUnit(buildingId: string, unitId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*')
-            .eq('building_id', buildingId)
+            .select('*, profiles(id, name)')
             .eq('unit_id', unitId)
+            // If building_id is null in DB but unit matches, we still want it (legacy/bug fix)
+            // or we strictly enforce it. Given the bug just fixed, let's allow matching just by unit_id
+            // if we are sure the unit_id is unique across buildings (which it is, uuid).
+            // However, to be safe and clean, we eq('unit_id', unitId) and then filter or or.
             .order('payment_date', { ascending: false });
+
+        // If we want to be strict but allow the recently created null building_ids:
+        // query = query.or(`building_id.eq.${buildingId},building_id.is.null`);
+        // But eq('unit_id', unitId) should be enough if unit_id is UUID.
+
 
         if (year) {
             const startDate = `${year}-01-01`;
@@ -131,7 +143,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             .from('payments')
             .update(persistenceData)
             .eq('id', payment.id)
-            .select()
+            .select('*, profiles(id, name)')
             .single();
 
         if (error) {
@@ -144,7 +156,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findAll(filters?: FindAllPaymentsFilters): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*')
+            .select('*, profiles(id, name)')
             .order('created_at', { ascending: false });
 
         if (filters?.building_id) {

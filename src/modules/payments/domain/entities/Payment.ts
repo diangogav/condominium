@@ -11,11 +11,18 @@ export interface PaymentProps {
     bank?: string;
     proof_url?: string;
     status: PaymentStatus;
+    /**
+     * @deprecated Use allocations for accounting. This field is now informational for UI only.
+     */
     periods?: string[]; // e.g., ["2024-03", "2024-04"]
     unit_id: string;
     notes?: string;
     created_at?: Date;
     updated_at?: Date;
+    user?: {
+        id: string;
+        name: string;
+    };
 }
 
 export class Payment {
@@ -43,6 +50,7 @@ export class Payment {
     get notes(): string | undefined { return this.props.notes; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }
+    get user(): { id: string, name: string } | undefined { return this.props.user; }
 
     isPending(): boolean {
         return this.props.status === PaymentStatus.PENDING;

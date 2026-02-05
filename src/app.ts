@@ -8,6 +8,7 @@ import { authRoutes } from './modules/auth/presentation/routes';
 import { userRoutes } from './modules/users/presentation/routes';
 import { buildingRoutes } from './modules/buildings/presentation/routes';
 import { paymentRoutes } from './modules/payments/presentation/routes';
+import { billingRoutes } from './modules/billing/presentation/routes';
 
 // @ts-ignore
 export const app = new Elysia()
@@ -54,6 +55,7 @@ export const app = new Elysia()
     .use(userRoutes)
     .use(buildingRoutes)
     .use(paymentRoutes)
+    .use(billingRoutes)
     .derive(({ request }) => {
         return {
             requestId: request.headers.get('x-request-id') || randomUUID()

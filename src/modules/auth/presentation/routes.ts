@@ -10,25 +10,43 @@ const userRepo = new SupabaseUserRepository();
 const registerResidentUseCase = new RegisterResident(authRepo, userRepo);
 const loginUserUseCase = new LoginUser(authRepo, userRepo);
 
+const AuthResponse = t.Object({
+    access_token: t.String(),
+    refresh_token: t.String(),
+    expires_in: t.Number(),
+    user: t.Object({
+        id: t.String(),
+        email: t.Optional(t.String()),
+        role: t.String(),
+    })
+});
+
 export const authRoutes = new Elysia({ prefix: '/auth' })
     .post('/register', async ({ body }) => {
         const session = await registerResidentUseCase.execute({
             name: body.name,
             email: body.email,
             password: body.password,
-            unit_id: body.unit,
+            unit_id: body.unit_id,
             building_id: body.building_id
         });
 
-        return session;
+        return {
+            ...session,
+            user: {
+                ...session.user,
+                role: 'RESIDENT' // Default role for registration
+            }
+        };
     }, {
         body: t.Object({
             name: t.String({ minLength: 1, examples: ['Juan Pérez'] }),
             email: t.String({ format: 'email', examples: ['juan.perez@example.com'] }),
             password: t.String({ minLength: 6, examples: ['SecurePass123'] }),
-            unit: t.String({ examples: ['5-B', '101', 'PH-1'] }),
+            unit_id: t.String({ format: 'uuid', examples: ['d047cca7-d97f-480f-b747-042b88c26228'] }),
             building_id: t.String({ format: 'uuid', examples: ['d047cca7-d97f-480f-b747-042b88c26228'] })
         }),
+        response: AuthResponse,
         detail: {
             tags: ['Auth'],
             summary: 'Register a new resident',
@@ -36,13 +54,23 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         }
     })
     .post('/login', async ({ body }) => {
-        const result = await loginUserUseCase.execute(body.email, body.password);
-        return result;
+        const { token, user } = await loginUserUseCase.execute(body.email, body.password);
+        return {
+            access_token: token.access_token,
+            refresh_token: token.refresh_token,
+            expires_in: token.expires_in,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            }
+        };
     }, {
         body: t.Object({
             email: t.String({ format: 'email', examples: ['juan.perez@example.com'] }),
             password: t.String({ examples: ['SecurePass123'] })
         }),
+        response: AuthResponse,
         detail: {
             tags: ['Auth'],
             summary: 'Login user',

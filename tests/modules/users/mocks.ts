@@ -28,7 +28,7 @@ export class MockUserRepository implements IUserRepository {
     async findAll(filters?: FindAllUsersFilters): Promise<User[]> {
         let filtered = [...this.users];
         if (filters?.building_id) {
-            filtered = filtered.filter(u => u.building_id === filters.building_id);
+            filtered = filtered.filter(u => u.units.some(unit => unit.building_id === filters.building_id));
         }
         return filtered;
     }

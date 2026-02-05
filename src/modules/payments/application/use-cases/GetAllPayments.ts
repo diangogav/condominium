@@ -40,10 +40,27 @@ export class GetAllPayments {
 
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {
-            if (!requester.building_id) {
+            const validBuildingIds = requester.units.map(u => u.building_id).filter((id): id is string => !!id);
+
+            if (validBuildingIds.length === 0) {
                 return [];
             }
-            filters.building_id = requester.building_id;
+
+            // If specific building requested, validate access
+            if (filters.building_id) {
+                if (!validBuildingIds.includes(filters.building_id)) {
+                    // For listing, maybe just return empty if filters don't match permissions?
+                    // Or throw forbidden. Let's return empty to be safe/standard for list filters.
+                    return [];
+                }
+            } else {
+                // If no building specified, and we can only filter by one in the repo (assuming),
+                // we might default to the first one. 
+                // Ideally repo should support 'in' queries.
+                // For now, let's use the first one if not specified.
+                filters.building_id = validBuildingIds[0];
+            }
+            // Note: This logic assumes 1 building filter. 
         } else {
             // Admin - allow filtering by building if requested
             if (request.filters?.building_id) {

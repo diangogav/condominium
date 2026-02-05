@@ -40,13 +40,21 @@ describe('ApproveUser Use Case', () => {
         useCase = new ApproveUser(repo);
     });
 
-    const createResident = (id: string, buildingId: string = 'b1') => new User({
-        id, email: 'res@test.com', name: 'Res', role: UserRole.RESIDENT, status: UserStatus.PENDING, building_id: buildingId, created_at: new Date(), updated_at: new Date()
-    });
+    const createResident = (id: string, buildingId: string = 'b1') => {
+        const u = new User({
+            id, email: 'res@test.com', name: 'Res', role: UserRole.RESIDENT, status: UserStatus.PENDING, created_at: new Date(), updated_at: new Date()
+        });
+        u.setUnits([{ unit_id: 'u1', building_id: buildingId, role: 'resident', is_primary: true } as any]);
+        return u;
+    };
 
-    const createBoard = (id: string, buildingId: string = 'b1') => new User({
-        id, email: 'board@test.com', name: 'Board', role: UserRole.BOARD, status: UserStatus.ACTIVE, building_id: buildingId, created_at: new Date(), updated_at: new Date()
-    });
+    const createBoard = (id: string, buildingId: string = 'b1') => {
+        const u = new User({
+            id, email: 'board@test.com', name: 'Board', role: UserRole.BOARD, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()
+        });
+        u.setUnits([{ unit_id: 'u2', building_id: buildingId, role: 'owner', is_primary: true } as any]);
+        return u;
+    };
 
     const createAdmin = (id: string) => new User({
         id, email: 'admin@test.com', name: 'Admin', role: UserRole.ADMIN, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()

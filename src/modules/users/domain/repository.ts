@@ -3,6 +3,7 @@ import { UserRole, UserStatus } from '@/core/domain/enums';
 
 export interface FindAllUsersFilters {
     building_id?: string;
+    unit_id?: string;
     role?: UserRole;
     status?: UserStatus;
 }
