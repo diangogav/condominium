@@ -20,7 +20,7 @@ CREATE POLICY "Admins and Board can view all unit associations" ON public.profil
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() 
+            WHERE id = auth.uid()
             AND role IN ('admin', 'board') -- Simplified for now, board logic might need specific building check later
         )
     );
@@ -29,20 +29,20 @@ CREATE POLICY "Admins can manage unit associations" ON public.profile_units
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM public.profiles
-            WHERE id = auth.uid() 
+            WHERE id = auth.uid()
             AND role = 'admin'
         )
     );
 
 -- Data Migration: Move existing profile->unit links to profile_units
 INSERT INTO public.profile_units (profile_id, unit_id, role, is_primary)
-SELECT 
-    id, 
-    unit_id, 
-    CASE 
-        WHEN role IN ('owner', 'resident') THEN role 
-        ELSE 'resident' 
-    END, 
+SELECT
+    id,
+    unit_id,
+    CASE
+        WHEN role IN ('owner', 'resident') THEN role
+        ELSE 'resident'
+    END,
     true
 FROM public.profiles
 WHERE unit_id IS NOT NULL

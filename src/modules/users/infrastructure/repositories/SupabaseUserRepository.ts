@@ -9,9 +9,8 @@ export class SupabaseUserRepository implements IUserRepository {
     private toDomain(data: any): User {
         const units = data.profile_units?.map((u: any) => new UserUnit({
             unit_id: u.unit_id,
-            building_id: u.units?.building_id, // Map from joined units table
-            role: u.role,
-            building_role: u.building_role || 'resident', // New field
+            building_id: u.units?.building_id,
+            building_role: u.building_role || 'resident',
             is_primary: u.is_primary
         })) || [];
 
@@ -128,8 +127,7 @@ export class SupabaseUserRepository implements IUserRepository {
             const unitsData = units.map(u => ({
                 profile_id: userId,
                 unit_id: u.unit_id,
-                role: u.role,
-                building_role: u.building_role, // Include building_role
+                building_role: u.building_role,
                 is_primary: u.is_primary
             }));
 

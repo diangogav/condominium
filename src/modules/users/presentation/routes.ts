@@ -31,8 +31,7 @@ const getUserUnits = new GetUserUnits(userRepo);
 const UserUnitSchema = t.Object({
     unit_id: t.String(),
     building_id: t.Optional(t.String()),
-    role: t.String(),
-    building_role: t.Optional(t.String()),  // New: board/resident/owner
+    building_role: t.String(),
     is_primary: t.Boolean()
 });
 
@@ -188,14 +187,18 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         await assignUnitToUser.execute({
             userId: params.id,
             unitId: body.unit_id,
-            role: body.role as any,
+            building_role: body.building_role as 'board' | 'resident' | 'owner',
             isPrimary: body.is_primary ?? false
         });
         return { success: true };
     }, {
         body: t.Object({
             unit_id: t.String(),
-            role: t.Union([t.Literal('owner'), t.Literal('resident')]),
+            building_role: t.Union([
+                t.Literal('board'),
+                t.Literal('resident'),
+                t.Literal('owner')
+            ]),
             is_primary: t.Optional(t.Boolean())
         }),
         response: SuccessResponse,

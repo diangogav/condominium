@@ -28,14 +28,14 @@ describe("AssignUnitToUser Use Case", () => {
         await useCase.execute({
             userId: "user-1",
             unitId: "unit-A",
-            role: "owner",
+            building_role: "owner",
             isPrimary: true
         });
 
         expect(mockRepo.update).toHaveBeenCalled();
         expect(user.units.length).toBe(1);
         expect(user.units[0].unit_id).toBe("unit-A");
-        expect(user.units[0].role).toBe("owner");
+        expect(user.units[0].building_role).toBe("owner");
         expect(user.units[0].is_primary).toBe(true);
     });
 
@@ -63,12 +63,12 @@ describe("AssignUnitToUser Use Case", () => {
         await useCase.execute({
             userId: "user-1",
             unitId: "unit-A",
-            role: "owner",
+            building_role: "owner",
             isPrimary: true
         });
 
         expect(user.units.length).toBe(1);
-        expect(user.units[0].role).toBe("owner");
+        expect(user.units[0].building_role).toBe("owner");
         expect(user.units[0].is_primary).toBe(true);
     });
 
@@ -78,7 +78,7 @@ describe("AssignUnitToUser Use Case", () => {
         expect(useCase.execute({
             userId: "missing",
             unitId: "unit-A",
-            role: "owner",
+            building_role: "owner",
             isPrimary: true
         })).rejects.toThrow("User not found");
     });

@@ -44,7 +44,7 @@ describe('ApproveUser Use Case', () => {
         const u = new User({
             id, email: 'res@test.com', name: 'Res', role: UserRole.RESIDENT, status: UserStatus.PENDING, created_at: new Date(), updated_at: new Date()
         });
-        u.setUnits([{ unit_id: 'u1', building_id: buildingId, role: 'resident', is_primary: true } as any]);
+        u.setUnits([{ unit_id: 'u1', building_id: buildingId, building_role: 'resident', is_primary: true } as any]);
         return u;
     };
 
@@ -52,7 +52,7 @@ describe('ApproveUser Use Case', () => {
         const u = new User({
             id, email: 'board@test.com', name: 'Board', role: UserRole.BOARD, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()
         });
-        u.setUnits([{ unit_id: 'u2', building_id: buildingId, role: 'owner', is_primary: true } as any]);
+        u.setUnits([{ unit_id: 'u2', building_id: buildingId, building_role: 'owner', is_primary: true } as any]);
         return u;
     };
 

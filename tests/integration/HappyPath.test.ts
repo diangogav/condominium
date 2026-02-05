@@ -35,7 +35,7 @@ describe("Integration Scenario: Happy Path", () => {
 
         // 2. Assign Unit
         await assignUnit.execute({
-            userId: "user-1", unitId: "Unit-101", role: "owner", isPrimary: true
+            userId: "user-1", unitId: "Unit-101", building_role: "owner", isPrimary: true
         });
 
         const updatedUser = await repos.userRepo.findById("user-1");

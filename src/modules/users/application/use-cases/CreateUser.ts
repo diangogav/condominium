@@ -1,6 +1,7 @@
 import { IUserRepository } from '@/modules/users/domain/repository';
 import { IAuthRepository } from '@/modules/auth/domain/repository';
 import { User, UserProps } from '../../domain/entities/User';
+import { UserUnit } from '../../domain/entities/UserUnit';
 import { UserRole, UserStatus } from '@/core/domain/enums';
 import { ForbiddenError, UnauthorizedError } from '@/core/errors';
 
@@ -47,20 +48,14 @@ export class CreateUser {
 
         // Assign unit if provided
         if (request.unit_id) {
-            // Determine building_role based on user's global role
-            // Board members get 'board' role in their building
-            // Others get 'resident' or 'owner' based on role field
-            const buildingRole = request.role === UserRole.BOARD
-                ? 'board'
-                : (request.role === UserRole.RESIDENT ? 'resident' : 'owner');
+            const buildingRole = request.role === UserRole.BOARD ? 'board' : 'resident';
 
-            newUser.setUnits([{
+            newUser.setUnits([new UserUnit({
                 unit_id: request.unit_id,
                 building_id: request.building_id,
-                role: request.role === UserRole.RESIDENT ? 'resident' : 'owner',
-                building_role: buildingRole as 'board' | 'resident' | 'owner',
+                building_role: buildingRole,
                 is_primary: true
-            } as any]);
+            })]);
         }
 
         return await this.userRepo.create(newUser);

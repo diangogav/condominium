@@ -15,15 +15,13 @@ describe("User - Multi-Building Board Permissions", () => {
                 new UserUnit({
                     unit_id: "unit-a1",
                     building_id: "building-a",
-                    role: "owner",
-                    building_role: "board",  // Board in Building A
+                    building_role: "board",
                     is_primary: true
                 }),
                 new UserUnit({
                     unit_id: "unit-b2",
                     building_id: "building-b",
-                    role: "resident",
-                    building_role: "resident",  // Only resident in Building B
+                    building_role: "resident",
                     is_primary: false
                 })
             ]
@@ -51,15 +49,13 @@ describe("User - Multi-Building Board Permissions", () => {
                 new UserUnit({
                     unit_id: "unit-a1",
                     building_id: "building-a",
-                    role: "owner",
                     building_role: "board",
                     is_primary: true
                 }),
                 new UserUnit({
                     unit_id: "unit-a2",
                     building_id: "building-a",
-                    role: "owner",
-                    building_role: "board",  // Also board for this unit
+                    building_role: "board",
                     is_primary: false
                 })
             ]
@@ -80,7 +76,6 @@ describe("User - Multi-Building Board Permissions", () => {
                 new UserUnit({
                     unit_id: "unit-c1",
                     building_id: "building-c",
-                    role: "resident",
                     building_role: "resident",
                     is_primary: true
                 })
@@ -111,7 +106,6 @@ describe("User - Multi-Building Board Permissions", () => {
         const boardUnit = new UserUnit({
             unit_id: "unit-1",
             building_id: "building-1",
-            role: "owner",
             building_role: "board",
             is_primary: true
         });
@@ -119,7 +113,6 @@ describe("User - Multi-Building Board Permissions", () => {
         const residentUnit = new UserUnit({
             unit_id: "unit-2",
             building_id: "building-2",
-            role: "resident",
             building_role: "resident",
             is_primary: false
         });
@@ -132,8 +125,7 @@ describe("User - Multi-Building Board Permissions", () => {
         const unit = new UserUnit({
             unit_id: "unit-1",
             building_id: "building-1",
-            role: "resident",
-            // building_role not specified
+            building_role: "resident",
             is_primary: true
         });
 

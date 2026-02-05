@@ -5,8 +5,7 @@ import { DomainError } from '@/core/errors';
 export interface AssignUnitToUserDTO {
     userId: string;
     unitId: string;
-    role: 'owner' | 'resident';
-    building_role?: 'board' | 'resident' | 'owner';  // Optional: defaults to resident
+    building_role: 'board' | 'resident' | 'owner';
     isPrimary: boolean;
 }
 
@@ -38,16 +37,14 @@ export class AssignUnitToUser {
             const newUnits = currentUnits.filter(u => u.unit_id !== dto.unitId);
             newUnits.push(new UserUnit({
                 unit_id: dto.unitId,
-                role: dto.role,
-                building_role: dto.building_role || 'resident',
+                building_role: dto.building_role,
                 is_primary: dto.isPrimary
             }));
             user.setUnits(newUnits);
         } else {
             const newUnits = [...currentUnits, new UserUnit({
                 unit_id: dto.unitId,
-                role: dto.role,
-                building_role: dto.building_role || 'resident',
+                building_role: dto.building_role,
                 is_primary: dto.isPrimary
             })];
             user.setUnits(newUnits);

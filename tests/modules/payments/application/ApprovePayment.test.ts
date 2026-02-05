@@ -26,7 +26,7 @@ describe('ApprovePayment Use Case', () => {
             status: UserStatus.ACTIVE
         });
         // Admin doesn't necessarily need units, but for consistency:
-        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
+        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', building_role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -61,7 +61,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
-        board.setUnits([{ unit_id: 'B1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
+        board.setUnits([{ unit_id: 'B1', building_id: 'building-1', building_role: 'board', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -94,7 +94,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
-        board.setUnits([{ unit_id: 'B1', building_id: 'building-2', role: 'owner', is_primary: true } as any]);
+        board.setUnits([{ unit_id: 'B1', building_id: 'building-2', building_role: 'board', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -126,7 +126,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.RESIDENT,
             status: UserStatus.ACTIVE
         });
-        resident.setUnits([{ unit_id: 'C1', building_id: 'building-1', role: 'resident', is_primary: true } as any]);
+        resident.setUnits([{ unit_id: 'C1', building_id: 'building-1', building_role: 'resident', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -158,7 +158,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE
         });
-        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', role: 'owner', is_primary: true } as any]);
+        admin.setUnits([{ unit_id: 'A1', building_id: 'building-1', building_role: 'owner', is_primary: true } as any]);
 
         const payment = new Payment({
             id: 'payment-1',
