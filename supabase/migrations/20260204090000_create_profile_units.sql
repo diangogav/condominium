@@ -36,7 +36,14 @@ CREATE POLICY "Admins can manage unit associations" ON public.profile_units
 
 -- Data Migration: Move existing profile->unit links to profile_units
 INSERT INTO public.profile_units (profile_id, unit_id, role, is_primary)
-SELECT id, unit_id, COALESCE(role, 'resident'), true
+SELECT 
+    id, 
+    unit_id, 
+    CASE 
+        WHEN role IN ('owner', 'resident') THEN role 
+        ELSE 'resident' 
+    END, 
+    true
 FROM public.profiles
 WHERE unit_id IS NOT NULL
 ON CONFLICT DO NOTHING;
