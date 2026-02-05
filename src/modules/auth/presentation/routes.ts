@@ -62,7 +62,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             user: {
                 id: user.id,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                units: user.units.map(u => u.toJSON())  // Include units
             }
         };
     }, {

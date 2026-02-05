@@ -47,18 +47,18 @@ export class CreateUser {
 
         // Assign unit if provided
         if (request.unit_id) {
+            // Determine building_role based on user's global role
+            // Board members get 'board' role in their building
+            // Others get 'resident' or 'owner' based on role field
+            const buildingRole = request.role === UserRole.BOARD
+                ? 'board'
+                : (request.role === UserRole.RESIDENT ? 'resident' : 'owner');
+
             newUser.setUnits([{
                 unit_id: request.unit_id,
-                // building_id is theoretically retrievable from request.building_id or via DB.
-                // For now, we rely on what's passed or what's needed.
-                // Actually, if we pass building_id in request, we can store it in UserUnit.
                 building_id: request.building_id,
-
                 role: request.role === UserRole.RESIDENT ? 'resident' : 'owner',
-                // Simplification: Residents are residents, others (Board/Admin) might be owners 
-                // or just have access. Let's assume 'owner' for board/admin for now or 'resident' if unspecified.
-                // Better logic: If role is Resident -> Resident. If Owner (not a role, but a relation) -> Owner.
-                // Use case doesn't specify relation type. Defaulting to 'resident' or checking role.
+                building_role: buildingRole as 'board' | 'resident' | 'owner',
                 is_primary: true
             } as any]);
         }

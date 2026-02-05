@@ -95,6 +95,34 @@ export class User {
         this.props.updated_at = new Date();
     }
 
+    /**
+     * Check if user is board member in a specific building
+     */
+    isBoardInBuilding(buildingId: string): boolean {
+        return this.units.some(u =>
+            u.building_id === buildingId && u.isBoardInBuilding()
+        );
+    }
+
+    /**
+     * Get all buildings where user is board
+     */
+    getBuildingsWhereBoard(): string[] {
+        const buildingIds = this.units
+            .filter(u => u.isBoardInBuilding())
+            .map(u => u.building_id!)
+            .filter(Boolean);
+        // Use Set to ensure uniqueness (user might have multiple units in same building)
+        return Array.from(new Set(buildingIds));
+    }
+
+    /**
+     * Check if user has any board role in any building
+     */
+    isBoardMemberAnywhere(): boolean {
+        return this.units.some(u => u.isBoardInBuilding());
+    }
+
     toJSON(): UserProps {
         return this.props;
     }

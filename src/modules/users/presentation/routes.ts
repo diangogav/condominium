@@ -32,6 +32,7 @@ const UserUnitSchema = t.Object({
     unit_id: t.String(),
     building_id: t.Optional(t.String()),
     role: t.String(),
+    building_role: t.Optional(t.String()),  // New: board/resident/owner
     is_primary: t.Boolean()
 });
 

@@ -30,6 +30,13 @@ export const createStatefulMockRepositories = () => {
             if (filters?.status) res = res.filter(i => i.status === filters.status);
             return res;
         },
+        findInvoicesForAdmin: async (filters) => {
+            // Mock: same as findAll for test purposes
+            let res = Array.from(invoices.values());
+            if (filters?.unit_id) res = res.filter(i => i.unit_id === filters.unit_id);
+            if (filters?.status) res = res.filter(i => i.status === filters.status);
+            return res;
+        },
         update: async (i) => { invoices.set(i.id, i); return i; }
     };
 
@@ -46,7 +53,12 @@ export const createStatefulMockRepositories = () => {
     const allocationRepo: IPaymentAllocationRepository = {
         create: async (a) => { allocations.set(a.id, a); return a; },
         findByPaymentId: async (pid) => Array.from(allocations.values()).filter(a => a.payment_id === pid),
-        findByInvoiceId: async (iid) => Array.from(allocations.values()).filter(a => a.invoice_id === iid)
+        findByInvoiceId: async (iid) => Array.from(allocations.values()).filter(a => a.invoice_id === iid),
+        findPaymentsByInvoiceId: async (iid) => {
+            // Mock: return payment IDs that allocated to this invoice
+            const allocs = Array.from(allocations.values()).filter(a => a.invoice_id === iid);
+            return allocs.map(a => ({ payment_id: a.payment_id, amount: a.amount }));
+        }
     };
 
     return { userRepo, invoiceRepo, paymentRepo, allocationRepo };

@@ -11,6 +11,7 @@ export class SupabaseUserRepository implements IUserRepository {
             unit_id: u.unit_id,
             building_id: u.units?.building_id, // Map from joined units table
             role: u.role,
+            building_role: u.building_role || 'resident', // New field
             is_primary: u.is_primary
         })) || [];
 
@@ -128,6 +129,7 @@ export class SupabaseUserRepository implements IUserRepository {
                 profile_id: userId,
                 unit_id: u.unit_id,
                 role: u.role,
+                building_role: u.building_role, // Include building_role
                 is_primary: u.is_primary
             }));
 

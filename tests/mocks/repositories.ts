@@ -20,6 +20,7 @@ export const createMockInvoiceRepository = (): IInvoiceRepository => ({
     create: mock(async (invoice: Invoice) => invoice),
     findById: mock(async (id: string) => null),
     findAll: mock(async () => []),
+    findInvoicesForAdmin: mock(async () => []),  // Added
     update: mock(async (invoice: Invoice) => invoice)
 });
 
@@ -36,5 +37,6 @@ export const createMockPaymentRepository = (): IPaymentRepository => ({
 export const createMockAllocationRepository = (): IPaymentAllocationRepository => ({
     create: mock(async (alloc: PaymentAllocation) => alloc),
     findByPaymentId: mock(async (id: string) => []),
-    findByInvoiceId: mock(async (id: string) => [])
+    findByInvoiceId: mock(async (id: string) => []),
+    findPaymentsByInvoiceId: mock(async (id: string) => [])  // Added
 });

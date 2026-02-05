@@ -6,6 +6,7 @@ export interface AssignUnitToUserDTO {
     userId: string;
     unitId: string;
     role: 'owner' | 'resident';
+    building_role?: 'board' | 'resident' | 'owner';  // Optional: defaults to resident
     isPrimary: boolean;
 }
 
@@ -38,6 +39,7 @@ export class AssignUnitToUser {
             newUnits.push(new UserUnit({
                 unit_id: dto.unitId,
                 role: dto.role,
+                building_role: dto.building_role || 'resident',
                 is_primary: dto.isPrimary
             }));
             user.setUnits(newUnits);
@@ -45,6 +47,7 @@ export class AssignUnitToUser {
             const newUnits = [...currentUnits, new UserUnit({
                 unit_id: dto.unitId,
                 role: dto.role,
+                building_role: dto.building_role || 'resident',
                 is_primary: dto.isPrimary
             })];
             user.setUnits(newUnits);

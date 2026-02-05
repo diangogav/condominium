@@ -48,7 +48,15 @@ describe("AssignUnitToUser Use Case", () => {
             status: UserStatus.ACTIVE
         });
         // Pre-assign
-        user.setUnits([{ unit_id: "unit-A", role: "resident", is_primary: false, isOwner: () => false, toJSON: () => ({}) } as any]);
+        user.setUnits([{
+            unit_id: "unit-A",
+            role: "resident",
+            building_role: "resident",
+            is_primary: false,
+            isOwner: () => false,
+            isBoardInBuilding: () => false,
+            toJSON: () => ({})
+        } as any]);
 
         mockRepo.findById = mock(async () => user);
 
