@@ -19,13 +19,17 @@ export class PaymentAdminRepository {
                     id,
                     name,
                     email,
-                    building_id
+                    profile_units!inner (
+                        units!inner (
+                            building_id
+                        )
+                    )
                 )
             `)
             .order('payment_date', { ascending: false });
 
         if (filters?.building_id) {
-            query = query.eq('user.building_id', filters.building_id);
+            query = query.eq('user.profile_units.units.building_id', filters.building_id);
         }
         if (filters?.status) {
             query = query.eq('status', filters.status);

@@ -89,7 +89,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
         // Get profile with units for role and ownership check
         const { data: profile } = await supabaseAdmin
             .from('profiles')
-            .select('*, profile_units(unit_id)')
+            .select('id, email, name, role, status, profile_units(unit_id)')
             .eq('id', user.id)
             .single();
         if (!profile) throw new UnauthorizedError('Profile not found');

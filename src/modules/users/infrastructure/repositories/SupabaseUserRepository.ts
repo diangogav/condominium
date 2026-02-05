@@ -49,7 +49,7 @@ export class SupabaseUserRepository implements IUserRepository {
         const { data, error } = await supabase
             .from('profiles')
             .insert(persistenceData)
-            .select()
+            .select('id, email, name, phone, role, status, created_at, updated_at')
             .single();
 
         if (error) {
@@ -68,7 +68,7 @@ export class SupabaseUserRepository implements IUserRepository {
         // Fetch profile with units
         const { data, error } = await supabase
             .from('profiles')
-            .select('*, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
             .eq('id', id)
             .single();
 
@@ -83,7 +83,7 @@ export class SupabaseUserRepository implements IUserRepository {
     async findByEmail(email: string): Promise<User | null> {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
             .eq('email', email)
             .single();
 
@@ -101,7 +101,7 @@ export class SupabaseUserRepository implements IUserRepository {
             .from('profiles')
             .update(persistenceData)
             .eq('id', user.id)
-            .select('*, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
             .single();
 
         if (error) {
@@ -144,7 +144,7 @@ export class SupabaseUserRepository implements IUserRepository {
         // But we want to start with a query that allows filtering if needed.
         // Actually, simpler to construct the query based on filters.
 
-        let query = supabase.from('profiles').select('*, profile_units(*, units(building_id))');
+        let query = supabase.from('profiles').select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))');
 
         if (filters?.role) {
             query = query.eq('role', filters.role);
@@ -157,7 +157,7 @@ export class SupabaseUserRepository implements IUserRepository {
             // Filter users who have a specific unit assignment
             // Need !inner on profile_units to filter the parent profile
             query = supabase.from('profiles')
-                .select('*, profile_units!inner(*, units(building_id))')
+                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units(building_id))')
                 .eq('profile_units.unit_id', filters.unit_id);
         }
 
@@ -165,7 +165,7 @@ export class SupabaseUserRepository implements IUserRepository {
             // Filter users who have a unit in specific building
             // Need !inner on profile_units AND units
             query = supabase.from('profiles')
-                .select('*, profile_units!inner(*, units!inner(building_id))')
+                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units!inner(building_id))')
                 .eq('profile_units.units.building_id', filters.building_id);
         }
 
