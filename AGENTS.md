@@ -13,8 +13,8 @@ Condominio API Server is a backend API for a mobile application built with **Bun
 
 | Skill | Description | URL |
 |-------|-------------|-----|
-| `ddd-implementation` | Patterns for Entities, Value Objects, Aggregates | [SKILL.md](skills/ddd-implementation/SKILL.md) |
-| `hexagonal-architecture` | Layers and dependency rules for Hexagonal Architecture | [SKILL.md](skills/hexagonal-architecture/SKILL.md) |
+| `ddd-implementation` | Patterns for Entities, Value Objects, Aggregates | [SKILL.md](.agents/skills/ddd-implementation/SKILL.md) |
+| `hexagonal-architecture` | Layers and dependency rules for Hexagonal Architecture | [SKILL.md](.agents/skills/hexagonal-architecture/SKILL.md) |
 
 ## Implementation Guidelines
 
