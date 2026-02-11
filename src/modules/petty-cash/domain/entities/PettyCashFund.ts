@@ -1,5 +1,3 @@
-import { PettyCashTransactionType } from '../../../../core/domain/enums';
-
 export class PettyCashFund {
     constructor(
         public readonly id: string,
