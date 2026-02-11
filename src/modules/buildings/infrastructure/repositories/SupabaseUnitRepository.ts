@@ -4,20 +4,20 @@ import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class SupabaseUnitRepository implements IUnitRepository {
-    private toDomain(data: any): Unit {
+    private toDomain(data: Record<string, unknown>): Unit {
         const props: UnitProps = {
-            id: data.id,
-            building_id: data.building_id,
-            name: data.name,
-            floor: data.floor,
-            aliquot: data.aliquot,
-            created_at: new Date(data.created_at),
-            updated_at: new Date(data.updated_at),
+            id: data.id as string,
+            building_id: data.building_id as string,
+            name: data.name as string,
+            floor: data.floor as string | null,
+            aliquot: data.aliquot as number | null,
+            created_at: data.created_at ? new Date(data.created_at as string) : undefined,
+            updated_at: data.updated_at ? new Date(data.updated_at as string) : undefined,
         };
         return new Unit(props);
     }
 
-    private toPersistence(unit: Unit): any {
+    private toPersistence(unit: Unit): Record<string, unknown> {
         return {
             id: unit.id,
             building_id: unit.building_id,

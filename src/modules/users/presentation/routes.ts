@@ -30,7 +30,9 @@ const getUserUnits = new GetUserUnits(userRepo);
 
 const UserUnitSchema = t.Object({
     unit_id: t.String(),
+    unit_name: t.Optional(t.String()),
     building_id: t.Optional(t.String()),
+    building_name: t.Optional(t.String()),
     building_role: t.String(),
     is_primary: t.Boolean()
 });

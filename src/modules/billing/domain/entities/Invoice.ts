@@ -22,6 +22,7 @@ export interface InvoiceProps {
     status: InvoiceStatus;
     type: InvoiceType;
     description?: string;
+    receipt_number?: string;
     paid_amount?: number;
     created_at?: Date;
     updated_at?: Date;
@@ -52,6 +53,7 @@ export class Invoice {
     get status(): InvoiceStatus { return this.props.status; }
     get type(): InvoiceType { return this.props.type; }
     get description(): string | undefined { return this.props.description; }
+    get receipt_number(): string | undefined { return this.props.receipt_number; }
     get paid_amount(): number { return this.props.paid_amount || 0; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }

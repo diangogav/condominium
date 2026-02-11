@@ -1,6 +1,43 @@
 import { Invoice } from './entities/Invoice';
 import { PaymentAllocation } from './entities/PaymentAllocation';
 
+export interface AdminInvoiceResult {
+    id: string;
+    amount: number;
+    paid_amount: number;
+    status: string;
+    period: string;
+    year: number;
+    month: number;
+    issue_date: string;
+    receipt_number?: string;
+    created_at: string;
+    unit: {
+        id: string;
+        name: string;
+    };
+    user: {
+        id: string;
+        name: string;
+    } | null;
+}
+
+export interface PaymentAllocationResult {
+    id: string;
+    amount: number;
+    status: string;
+    payment_date: string;
+    method: string;
+    reference?: string;
+    allocated_amount: number;
+    allocation_id: string;
+    allocated_at: Date;
+    user?: {
+        id: string;
+        name: string;
+    };
+}
+
 export interface FindAllInvoicesFilters {
     unit_id?: string;
     building_id?: string;
@@ -14,14 +51,14 @@ export interface IInvoiceRepository {
     create(invoice: Invoice): Promise<Invoice>;
     findById(id: string): Promise<Invoice | null>;
     findAll(filters?: FindAllInvoicesFilters): Promise<Invoice[]>;
-    findInvoicesForAdmin(filters?: FindAllInvoicesFilters): Promise<any[]>;
+    findInvoicesForAdmin(filters?: FindAllInvoicesFilters): Promise<AdminInvoiceResult[]>;
     update(invoice: Invoice): Promise<Invoice>;
-    // delete? usually void invoices cancel them
+    createBatch(invoices: Invoice[]): Promise<Invoice[]>;
 }
 
 export interface IPaymentAllocationRepository {
     create(allocation: PaymentAllocation): Promise<PaymentAllocation>;
     findByPaymentId(paymentId: string): Promise<PaymentAllocation[]>;
     findByInvoiceId(invoiceId: string): Promise<PaymentAllocation[]>;
-    findPaymentsByInvoiceId(invoiceId: string): Promise<any[]>; // Returns Payment details joined
+    findPaymentsByInvoiceId(invoiceId: string): Promise<PaymentAllocationResult[]>; // Returns Payment details joined
 }

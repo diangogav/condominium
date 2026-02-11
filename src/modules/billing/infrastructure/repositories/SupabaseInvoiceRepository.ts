@@ -1,27 +1,28 @@
-import { IInvoiceRepository, FindAllInvoicesFilters } from '../../domain/repository';
+import { IInvoiceRepository, FindAllInvoicesFilters, AdminInvoiceResult } from '../../domain/repository';
 import { Invoice, InvoiceProps, InvoiceStatus, InvoiceType } from '../../domain/entities/Invoice';
 import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class SupabaseInvoiceRepository implements IInvoiceRepository {
-    private toDomain(data: any): Invoice {
+    private toDomain(data: Record<string, unknown>): Invoice {
         return new Invoice({
-            id: data.id,
-            unit_id: data.unit_id,
-            amount: data.amount,
-            period: data.period,
-            issue_date: new Date(data.issue_date),
-            due_date: data.due_date ? new Date(data.due_date) : undefined,
+            id: data.id as string,
+            unit_id: data.unit_id as string,
+            amount: data.amount as number,
+            period: data.period as string,
+            issue_date: new Date(data.issue_date as string),
+            due_date: data.due_date ? new Date(data.due_date as string) : undefined,
             status: data.status as InvoiceStatus,
             type: data.type as InvoiceType,
-            description: data.description,
-            paid_amount: parseFloat(data.paid_amount || 0),
-            created_at: new Date(data.created_at),
-            updated_at: new Date(data.updated_at)
+            description: data.description as string | undefined,
+            receipt_number: data.receipt_number as string | undefined,
+            paid_amount: parseFloat(data.paid_amount as string || '0'),
+            created_at: data.created_at ? new Date(data.created_at as string) : undefined,
+            updated_at: data.updated_at ? new Date(data.updated_at as string) : undefined
         });
     }
 
-    private toPersistence(invoice: Invoice): any {
+    private toPersistence(invoice: Invoice): Record<string, unknown> {
         return {
             id: invoice.id,
             unit_id: invoice.unit_id,
@@ -32,6 +33,7 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
             status: invoice.status,
             type: invoice.type,
             description: invoice.description,
+            receipt_number: invoice.receipt_number,
             updated_at: invoice.updated_at
         };
     }
@@ -115,8 +117,26 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
         return this.toDomain(data);
     }
 
+    async createBatch(invoices: Invoice[]): Promise<Invoice[]> {
+        const persistenceData = invoices.map(inv => ({
+            ...this.toPersistence(inv),
+            created_at: inv.created_at
+        }));
+
+        const { data, error } = await supabase
+            .from('invoices')
+            .insert(persistenceData)
+            .select();
+
+        if (error) {
+            throw new DomainError('Error creating batch invoices: ' + error.message, 'DB_ERROR', 500);
+        }
+
+        return data.map(d => this.toDomain(d));
+    }
+
     // Admin view with joins
-    async findInvoicesForAdmin(filters?: FindAllInvoicesFilters): Promise<any[]> {
+    async findInvoicesForAdmin(filters?: FindAllInvoicesFilters): Promise<AdminInvoiceResult[]> {
         // We select invoice fields + unit details + profile details (via profile_units? No, invoices map to units. Units map to... profiles?
         // Wait, User <-> Unit is N:N via profile_units.
         // Who acts as the "User" for an invoice? The Invoice is on the Unit.
@@ -161,46 +181,44 @@ export class SupabaseInvoiceRepository implements IInvoiceRepository {
         if (error) throw new DomainError('Error fetching admin invoices: ' + error.message, 'DB_ERROR', 500);
 
         // Map to requested structure
-        return data.map((inv: any) => {
-            // Flatten User: Find primary owner or first profile
-            // profile_units is coming from 'units' relation which is 1:N with profiles via profile_units logic?
-            // Actually 'units' table doesn't have 'profile_units'. 
-            // It's: units <- profile_units -> profiles.
-            // So we are selecting from invoices -> unit.
-            // Then we need to find who lives in that unit.
-            // The query above `units(profile_units(...))` attempts to fetch it.
-            // `inv.units` is an object (Since invoice belongs to 1 unit).
-            // `inv.units.profile_units` should be an array of links.
-
-            // Adjust query structure:
-            // The `profile_units: units(...)` alias might be tricky.
-            // Let's rely on `units ( *, profile_units ( ..., profiles (*) ) )`
-
-            const unit = inv.units;
-            const residents = unit?.profile_units?.map((pu: any) => pu.profiles) || [];
-            // Ideally pick the "primary" one.
-            const primary = unit?.profile_units?.find((pu: any) => pu.is_primary)?.profiles;
+        return (data || []).map((inv) => {
+            const unit = inv.units as unknown as {
+                id: string;
+                name: string;
+                building_id: string;
+                profile_units: {
+                    is_primary: boolean;
+                    profiles: {
+                        id: string;
+                        name: string;
+                        email: string;
+                    };
+                }[];
+            };
+            const residents = unit?.profile_units?.map(pu => pu.profiles) || [];
+            const primary = unit?.profile_units?.find(pu => pu.is_primary)?.profiles;
             const displayUser = primary || residents[0] || null;
 
             const [yearStr, monthStr] = (inv.period || '0-0').split('-');
 
             return {
-                id: inv.id,
-                amount: inv.amount,
+                id: inv.id as string,
+                amount: inv.amount as number,
                 paid_amount: parseFloat(inv.paid_amount || 0),
-                status: inv.status,
-                period: inv.period,
+                status: inv.status as string,
+                period: inv.period as string,
                 year: parseInt(yearStr),
                 month: parseInt(monthStr),
-                issue_date: inv.issue_date,
-                created_at: inv.created_at,
+                issue_date: inv.issue_date as string,
+                receipt_number: inv.receipt_number as string | undefined,
+                created_at: inv.created_at as string,
                 unit: {
-                    id: unit?.id,
-                    name: unit?.name
+                    id: unit?.id as string,
+                    name: unit?.name as string
                 },
                 user: displayUser ? {
-                    id: displayUser.id,
-                    name: displayUser.name
+                    id: displayUser.id as string,
+                    name: displayUser.name as string
                 } : null
             };
         });

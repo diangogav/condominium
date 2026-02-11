@@ -8,15 +8,23 @@ import { GetAllInvoices } from '../application/use-cases/GetAllInvoices';
 import { UnauthorizedError, NotFoundError } from '@/core/errors';
 import { supabase, supabaseAdmin } from '@/infrastructure/supabase';
 import { UserRole } from '@/core/domain/enums';
+import { PreviewInvoicesFromExcel } from '../application/use-cases/PreviewInvoicesFromExcel';
+import { BulkLoadInvoicesFromExcel } from '../application/use-cases/BulkLoadInvoicesFromExcel';
+import { SupabaseUnitRepository } from '../../buildings/infrastructure/repositories/SupabaseUnitRepository';
+import { ExcelJSInvoiceParser } from '../infrastructure/services/ExcelJSInvoiceParser';
 
 // Initialize Repos & Use Cases
-const invoiceRepo = new SupabaseInvoiceRepository();
-const allocationRepo = new SupabasePaymentAllocationRepository();
+const invoiceRepository = new SupabaseInvoiceRepository();
+const allocationRepository = new SupabasePaymentAllocationRepository();
+const unitRepository = new SupabaseUnitRepository();
+const excelParser = new ExcelJSInvoiceParser();
 
-const loadDebt = new LoadDebt(invoiceRepo);
-const getUnitBalance = new GetUnitBalance(invoiceRepo, allocationRepo);
-const getUnitInvoices = new GetUnitInvoices(invoiceRepo);
-const getAllInvoices = new GetAllInvoices(invoiceRepo);
+const loadDebt = new LoadDebt(invoiceRepository);
+const getUnitBalance = new GetUnitBalance(invoiceRepository, allocationRepository);
+const getUnitInvoices = new GetUnitInvoices(invoiceRepository);
+const getAllInvoices = new GetAllInvoices(invoiceRepository);
+const previewInvoices = new PreviewInvoicesFromExcel(unitRepository, excelParser);
+const bulkLoadInvoices = new BulkLoadInvoicesFromExcel(invoiceRepository, unitRepository);
 
 const InvoiceSchema = t.Object({
     id: t.String(),
@@ -24,8 +32,9 @@ const InvoiceSchema = t.Object({
     amount: t.Number(),
     period: t.String(),
     description: t.Optional(t.String()),
+    receipt_number: t.Optional(t.String()),
     status: t.String(),
-    paid_amount: t.Number(),
+    paid_amount: t.Optional(t.Number()),
     due_date: t.Optional(t.Any()), // Date or string
     created_at: t.Optional(t.Any()),
     updated_at: t.Optional(t.Any())
@@ -40,6 +49,7 @@ const AdminInvoiceSchema = t.Object({
     year: t.Number(),
     month: t.Number(),
     issue_date: t.Any(),
+    receipt_number: t.Optional(t.String()),
     created_at: t.Any(),
     unit: t.Object({
         id: t.Optional(t.String()),
@@ -136,6 +146,78 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
             security: [{ BearerAuth: [] }]
         }
     })
+    // 1.5. Preview Excel Invoices
+    .post('/invoices/preview', async ({ query, body, profile }) => {
+        if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin/Board can preview invoices');
+        }
+
+        const file = body.file as File;
+        if (!file) throw new Error('Excel file is required');
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        return await previewInvoices.execute(buffer, query.building_id);
+    }, {
+        query: t.Object({
+            building_id: t.String()
+        }),
+        body: t.Object({
+            file: t.File()
+        }),
+        response: t.Object({
+            invoices: t.Array(t.Object({
+                unitName: t.String(),
+                amount: t.Number(),
+                period: t.String(),
+                issueDate: t.Any(),
+                receiptNumber: t.String(),
+                unitId: t.Optional(t.String()),
+                status: t.String(),
+                warning: t.Optional(t.String())
+            })),
+            unitsToCreate: t.Array(t.String())
+        }),
+        detail: {
+            tags: ['Billing'],
+            summary: 'Preview invoices from Excel file (Admin)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    // 1.6. Confirm Excel Invoices
+    .post('/invoices/confirm', async ({ query, body, profile }) => {
+        if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin/Board can confirm invoices');
+        }
+
+        await bulkLoadInvoices.execute({
+            invoices: body.invoices.map(item => ({
+                ...item,
+                status: item.status as 'EXISTS' | 'TO_BE_CREATED'
+            })),
+            buildingId: query.building_id
+        });
+
+        return { success: true };
+    }, {
+        query: t.Object({
+            building_id: t.String()
+        }),
+        body: t.Object({
+            invoices: t.Array(t.Object({
+                unitName: t.String(),
+                amount: t.Number(),
+                period: t.String(),
+                issueDate: t.String(),
+                receiptNumber: t.String(),
+                status: t.String()
+            }))
+        }),
+        detail: {
+            tags: ['Billing'],
+            summary: 'Confirm and load invoices from Excel (Admin)',
+            security: [{ BearerAuth: [] }]
+        }
+    })
     // 1. Admin loads Debt
     .post('/debt', async ({ body, profile }) => {
         if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
@@ -150,7 +232,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
             dueDate: body.due_date ? new Date(body.due_date) : undefined
         });
 
-        return invoice;
+        return invoice.toJSON();
     }, {
         body: t.Object({
             unit_id: t.String(),
@@ -191,13 +273,14 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     .get('/units/:id/invoices', async ({ params, profile }) => {
         // Auth: Admin or Resident (same unit)
         if (profile.role !== UserRole.ADMIN) {
-            const hasAccess = profile.profile_units?.some((u: any) => u.unit_id === params.id);
+            const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === params.id);
             if (!hasAccess) {
                 throw new UnauthorizedError('Unauthorized: You do not have access to this unit invoices');
             }
         }
 
-        return await getUnitInvoices.execute(params.id);
+        const invoices = await getUnitInvoices.execute(params.id);
+        return invoices.map(inv => inv.toJSON());
     }, {
         response: t.Array(InvoiceSchema),
         detail: {
@@ -215,7 +298,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
             // but for simplicity return allocations. Repository handles basic fetch.
         }
 
-        return await allocationRepo.findPaymentsByInvoiceId(params.id);
+        return await allocationRepository.findPaymentsByInvoiceId(params.id);
     }, {
         response: t.Array(t.Object({
             id: t.String(),
@@ -241,18 +324,18 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     })
     // 5. Get Invoice Details
     .get('/invoices/:id', async ({ params, profile }) => {
-        const invoice = await invoiceRepo.findById(params.id);
+        const invoice = await invoiceRepository.findById(params.id);
         if (!invoice) throw new NotFoundError('Invoice not found');
 
         // Authorization
         if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
-            const hasAccess = profile.profile_units?.some((u: any) => u.unit_id === invoice.unit_id);
+            const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === invoice.unit_id);
             if (!hasAccess) {
                 throw new UnauthorizedError('Unauthorized: You do not have access to this invoice');
             }
         }
 
-        return invoice;
+        return invoice.toJSON();
     }, {
         response: InvoiceSchema,
         detail: {

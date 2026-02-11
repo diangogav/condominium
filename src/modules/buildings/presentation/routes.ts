@@ -35,7 +35,7 @@ const BuildingSchema = t.Object({
     id: t.String(),
     name: t.String(),
     address: t.String(),
-    created_at: t.Any(),
+    created_at: t.Optional(t.Any()),
     updated_at: t.Optional(t.Any())
 });
 
@@ -43,8 +43,8 @@ const UnitSchema = t.Object({
     id: t.String(),
     building_id: t.String(),
     name: t.String(),
-    floor: t.Optional(t.String()),
-    aliquot: t.Optional(t.Number()),
+    floor: t.Nullable(t.String()),
+    aliquot: t.Nullable(t.Number()),
     created_at: t.Optional(t.Any()),
     updated_at: t.Optional(t.Any())
 });
@@ -56,7 +56,8 @@ const BatchUnitsResponse = t.Object({
 
 export const buildingRoutes = new Elysia({ prefix: '/buildings' })
     .get('/', async () => {
-        return await getBuildings.execute();
+        const buildings = await getBuildings.execute();
+        return buildings.map(b => b.toJSON());
     }, {
         response: t.Array(BuildingSchema),
         detail: {
@@ -65,7 +66,8 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
         }
     })
     .get('/:id', async ({ params }) => {
-        return await getBuildingById.execute(params.id);
+        const building = await getBuildingById.execute(params.id);
+        return building.toJSON();
     }, {
         response: BuildingSchema,
         detail: {
@@ -75,7 +77,8 @@ export const buildingRoutes = new Elysia({ prefix: '/buildings' })
     })
     // Unit Routes (Public for Registration)
     .get('/:id/units', async ({ params }) => {
-        return await getUnitsByBuilding.execute(params.id);
+        const units = await getUnitsByBuilding.execute(params.id);
+        return units.map(u => u.toJSON());
     }, {
         response: t.Array(UnitSchema),
         detail: {
