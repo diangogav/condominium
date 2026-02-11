@@ -31,8 +31,8 @@ const InvoiceSchema = t.Object({
     unit_id: t.String(),
     amount: t.Number(),
     period: t.String(),
-    description: t.Optional(t.String()),
-    receipt_number: t.Optional(t.String()),
+    description: t.Optional(t.Union([t.String(), t.Null()])),
+    receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
     status: t.String(),
     paid_amount: t.Optional(t.Number()),
     due_date: t.Optional(t.Any()), // Date or string
@@ -48,9 +48,9 @@ const AdminInvoiceSchema = t.Object({
     period: t.String(),
     year: t.Number(),
     month: t.Number(),
-    issue_date: t.Any(),
-    receipt_number: t.Optional(t.String()),
-    created_at: t.Any(),
+    issue_date: t.String(),
+    receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
+    created_at: t.String(),
     unit: t.Object({
         id: t.Optional(t.String()),
         name: t.Optional(t.String())
