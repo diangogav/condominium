@@ -1,12 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RegisterPettyCashExpense, RegisterExpenseDTO } from './RegisterPettyCashExpense';
-import { PettyCashRepository } from '../../domain/repositories/PettyCashRepository';
-import { IUnitRepository } from '../../../../modules/buildings/domain/repository';
-import { IInvoiceRepository } from '../../../../modules/billing/domain/repository';
 import { PettyCashFund } from '../../domain/entities/PettyCashFund';
 import { Unit } from '../../../../modules/buildings/domain/entities/Unit';
 import { PettyCashCategory, PettyCashTransactionType } from '../../../../core/domain/enums';
-import { InvoiceStatus, InvoiceType } from '../../../../modules/billing/domain/entities/Invoice';
+import { InvoiceType } from '../../../../modules/billing/domain/entities/Invoice';
 
 describe('RegisterPettyCashExpense with Overage', () => {
     let useCase: RegisterPettyCashExpense;

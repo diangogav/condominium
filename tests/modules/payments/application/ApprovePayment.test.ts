@@ -4,27 +4,51 @@ import { MockPaymentRepository } from '../mocks';
 import { MockUserRepository } from '../../users/mocks';
 import { Payment } from '@/modules/payments/domain/entities/Payment';
 import { User } from '@/modules/users/domain/entities/User';
-import { PaymentMethod, PaymentStatus, UserRole, UserStatus } from '@/core/domain/enums';
+import { PaymentMethod, PaymentStatus, UserRole, UserStatus, PettyCashTransactionType, PettyCashCategory } from '@/core/domain/enums';
+import { IPaymentAllocationRepository, IInvoiceRepository } from '@/modules/billing/domain/repository';
+import { IUnitRepository } from '@/modules/buildings/domain/repository';
+import { PettyCashRepository } from '@/modules/petty-cash/domain/repositories/PettyCashRepository';
 
 describe('ApprovePayment Use Case', () => {
     let paymentRepo: MockPaymentRepository;
     let userRepo: MockUserRepository;
-    let allocationRepo: any;
-    let invoiceRepo: any;
-    let unitRepo: any;
-    let pettyCashRepo: any;
+    let allocationRepo: IPaymentAllocationRepository;
+    let invoiceRepo: IInvoiceRepository;
+    let unitRepo: IUnitRepository;
+    let pettyCashRepo: PettyCashRepository;
     let approvePayment: ApprovePayment;
 
     beforeEach(() => {
         paymentRepo = new MockPaymentRepository();
         userRepo = new MockUserRepository();
-        allocationRepo = { findByPaymentId: mock(async () => []) };
-        invoiceRepo = { findById: mock(async () => null) };
-        unitRepo = { findById: mock(async () => null) };
+        allocationRepo = {
+            findByPaymentId: mock(async () => []),
+            create: mock(),
+            findByInvoiceId: mock(),
+            findPaymentsByInvoiceId: mock(),
+            findInvoicesByPaymentId: mock()
+        };
+        invoiceRepo = {
+            findById: mock(async () => null),
+            create: mock(),
+            findAll: mock(),
+            findInvoicesForAdmin: mock(),
+            update: mock(),
+            createBatch: mock()
+        };
+        unitRepo = {
+            findById: mock(async () => null),
+            create: mock(),
+            update: mock(),
+            delete: mock(),
+            findByBuildingId: mock(async () => []),
+            createBatch: mock(async (u) => u)
+        };
         pettyCashRepo = {
             findFundByBuildingId: mock(async () => null),
-            saveFund: mock(async (f: any) => f),
-            saveTransaction: mock(async (t: any) => t)
+            saveFund: mock(async (f) => f),
+            saveTransaction: mock(async (t) => t),
+            findTransactionsByFundId: mock()
         };
         approvePayment = new ApprovePayment(
             paymentRepo,
