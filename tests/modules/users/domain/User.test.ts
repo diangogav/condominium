@@ -40,7 +40,6 @@ describe('User Entity', () => {
 
     it('should not change status if already active when approving', () => {
         const user = new User({ ...defaultProps, status: UserStatus.ACTIVE });
-        const oldUpdatedAt = user.updated_at.getTime();
 
         // Sleep small amount to ensure time diff if it were to update (won't happen in synchronous valid test usually but good to know logic)
         // actually if logic returns early, updated_at shouldn't change.

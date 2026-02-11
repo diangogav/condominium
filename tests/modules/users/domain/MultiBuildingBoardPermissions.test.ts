@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { User } from "@/modules/users/domain/entities/User";
 import { UserUnit } from "@/modules/users/domain/entities/UserUnit";
 import { UserRole, UserStatus } from "@/core/domain/enums";
