@@ -18,11 +18,11 @@ export class RegisterPettyCashIncome {
 
         if (!fund) {
             fund = PettyCashFund.create(dto.buildingId);
-            fund = await this.pettyCashRepo.saveFund(fund);
+            // Don't save yet, wait until income is added
         }
 
         fund.addIncome(dto.amount);
-        await this.pettyCashRepo.saveFund(fund);
+        await this.pettyCashRepo.saveFund(fund); // NOW save with balance
 
         const transaction = new PettyCashTransaction(
             '',

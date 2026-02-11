@@ -1,5 +1,12 @@
 import { IPaymentRepository } from '../../domain/repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
+import { IPaymentAllocationRepository } from '@/modules/billing/domain/repository';
+import { IInvoiceRepository } from '@/modules/billing/domain/repository';
+import { InvoiceType } from '@/modules/billing/domain/entities/Invoice';
+import { IUnitRepository } from '@/modules/buildings/domain/repository';
+import { PettyCashRepository } from '@/modules/petty-cash/domain/repositories/PettyCashRepository';
+import { PettyCashTransaction } from '@/modules/petty-cash/domain/entities/PettyCashTransaction';
+import { PettyCashTransactionType } from '@/core/domain/enums';
 import { ForbiddenError, NotFoundError } from '@/core/errors';
 
 export interface ApprovePaymentDTO {
@@ -18,7 +25,11 @@ export interface RejectPaymentDTO {
 export class ApprovePayment {
     constructor(
         private paymentRepo: IPaymentRepository,
-        private userRepo: IUserRepository
+        private userRepo: IUserRepository,
+        private allocationRepo: IPaymentAllocationRepository,
+        private invoiceRepo: IInvoiceRepository,
+        private unitRepo: IUnitRepository,
+        private pettyCashRepo: PettyCashRepository
     ) { }
 
     async approve({ paymentId, approverId, notes, periods }: ApprovePaymentDTO): Promise<void> {
@@ -48,6 +59,33 @@ export class ApprovePayment {
 
         payment.approve(notes, periods);
         await this.paymentRepo.update(payment);
+
+        // Replenish Petty Cash if any allocation is for a replenishment invoice
+        const allocations = await this.allocationRepo.findByPaymentId(paymentId);
+        for (const alloc of allocations) {
+            const invoice = await this.invoiceRepo.findById(alloc.invoice_id);
+            if (invoice?.type === InvoiceType.PETTY_CASH_REPLENISHMENT) {
+                const unit = await this.unitRepo.findById(invoice.unit_id);
+                if (unit) {
+                    const fund = await this.pettyCashRepo.findFundByBuildingId(unit.building_id);
+                    if (fund) {
+                        fund.addIncome(alloc.amount);
+                        await this.pettyCashRepo.saveFund(fund);
+
+                        const transaction = new PettyCashTransaction(
+                            '',
+                            fund.id,
+                            PettyCashTransactionType.INCOME,
+                            alloc.amount,
+                            `Reposición por pago de factura: ${invoice.description}`,
+                            'Otro' as any, // Or a specific category
+                            approverId
+                        );
+                        await this.pettyCashRepo.saveTransaction(transaction);
+                    }
+                }
+            }
+        }
     }
 
     async reject({ paymentId, approverId, notes }: RejectPaymentDTO): Promise<void> {

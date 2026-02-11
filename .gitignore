@@ -38,3 +38,10 @@ certbot/
 
 # Backup files
 *.backup
+
+# Project specific
+scripts/
+*.txt
+*.js
+!package.json
+!bun.lockb

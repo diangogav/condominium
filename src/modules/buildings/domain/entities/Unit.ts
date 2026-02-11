@@ -1,4 +1,4 @@
-import { DomainError } from '@/core/errors';
+import { DomainError } from '../../../../core/errors';
 
 export interface UnitProps {
     id: string;

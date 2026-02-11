@@ -1,4 +1,4 @@
-import { PettyCashTransactionType } from '@/core/domain/enums';
+import { PettyCashTransactionType } from '../../../../core/domain/enums';
 
 export class PettyCashFund {
     constructor(
