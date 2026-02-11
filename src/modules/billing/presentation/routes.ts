@@ -322,6 +322,37 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
             security: [{ BearerAuth: [] }]
         }
     })
+    // 4.5. Get Invoices for a Payment
+    .get('/payments/:id/invoices', async ({ params, profile }) => {
+        // Auth: Admin or Board
+        if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin/Board can see payment allocations');
+        }
+
+        return await allocationRepository.findInvoicesByPaymentId(params.id);
+    }, {
+        response: t.Array(t.Object({
+            id: t.String(),
+            unit_id: t.String(),
+            amount: t.Number(),
+            period: t.String(),
+            description: t.Optional(t.String()),
+            receipt_number: t.Optional(t.String()),
+            status: t.String(),
+            paid_amount: t.Optional(t.Number()),
+            due_date: t.Optional(t.Any()),
+            created_at: t.Optional(t.Any()),
+            updated_at: t.Optional(t.Any()),
+            allocated_amount: t.Number(),
+            allocation_id: t.String(),
+            allocated_at: t.Any()
+        })),
+        detail: {
+            tags: ['Billing'],
+            summary: 'Get all invoices for a specific payment',
+            security: [{ BearerAuth: [] }]
+        }
+    })
     // 5. Get Invoice Details
     .get('/invoices/:id', async ({ params, profile }) => {
         const invoice = await invoiceRepository.findById(params.id);
