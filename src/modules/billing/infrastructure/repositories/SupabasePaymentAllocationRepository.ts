@@ -1,16 +1,17 @@
-import { IPaymentAllocationRepository } from '../../domain/repository';
+import { IPaymentAllocationRepository, PaymentAllocationResult } from '../../domain/repository';
 import { PaymentAllocation } from '../../domain/entities/PaymentAllocation';
 import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 
 export class SupabasePaymentAllocationRepository implements IPaymentAllocationRepository {
-    private toDomain(data: any): PaymentAllocation {
+    private toDomain(data: unknown): PaymentAllocation {
+        const d = data as any; // Cast internally for brevity when mapping raw DB
         return new PaymentAllocation({
-            id: data.id,
-            payment_id: data.payment_id,
-            invoice_id: data.invoice_id,
-            amount: data.amount,
-            created_at: new Date(data.created_at)
+            id: d.id,
+            payment_id: d.payment_id,
+            invoice_id: d.invoice_id,
+            amount: d.amount,
+            created_at: new Date(d.created_at)
         });
     }
 
@@ -54,7 +55,7 @@ export class SupabasePaymentAllocationRepository implements IPaymentAllocationRe
         return data.map(this.toDomain);
     }
 
-    async findPaymentsByInvoiceId(invoiceId: string): Promise<any[]> {
+    async findPaymentsByInvoiceId(invoiceId: string): Promise<PaymentAllocationResult[]> {
         const { data, error } = await supabase
             .from('payment_allocations')
             .select('*, payments(*)')
@@ -66,7 +67,7 @@ export class SupabasePaymentAllocationRepository implements IPaymentAllocationRe
         // User asked for "related payment object". 
         // We can return the Payment object enriched with "allocated_amount_explicitly_for_this_invoice"?
 
-        return data.map((allocation: any) => {
+        return (data || []).map((allocation: any) => {
             return {
                 ...allocation.payments,
                 allocated_amount: allocation.amount, // The part of this payment that went to this invoice

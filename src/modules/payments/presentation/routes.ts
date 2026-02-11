@@ -101,10 +101,11 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     // Get user's payment history
     .get('/', async ({ user, query }) => {
         const year = query.year ? parseInt(query.year) : undefined;
-        return await getUnitPayments.execute(user.id, year, {
+        const payments = await getUnitPayments.execute(user.id, year, {
             unitId: query.unit_id,
             buildingId: query.building_id
         });
+        return payments.map(p => p.toJSON());
     }, {
         query: t.Object({
             year: t.Optional(t.String()),
@@ -139,14 +140,15 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         // Authorization Logic:
         // 1. Admin has full access
-        if (userProfile.role === UserRole.ADMIN) return payment;
+        if (userProfile.role === UserRole.ADMIN) return payment.toJSON();
 
+        // 2. Board can see payments for their building
         // 2. Board can see payments for their building
         // 2. Board can see payments for their building
         if (userProfile.role === UserRole.BOARD) {
             const authorizedBuildings = userProfile.units.map(u => u.building_id);
             if (authorizedBuildings.includes(payment.building_id)) {
-                return payment;
+                return payment.toJSON();
             }
         }
 
@@ -154,7 +156,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         // Check if the payment belongs to one of the user's units
         const userUnitIds = userProfile.units.map(u => u.unit_id);
         if (userUnitIds.includes(payment.unit_id)) {
-            return payment;
+            return payment.toJSON();
         }
 
         throw new UnauthorizedError('Unauthorized access to payment details');
@@ -249,7 +251,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     })
     // Admin routes
     .get('/admin/payments', async ({ user, query }) => {
-        return await getAllPayments.execute({
+        const payments = await getAllPayments.execute({
             requesterId: user.id,
             filters: {
                 building_id: query.building_id,
@@ -259,6 +261,8 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
                 unit_id: query.unit_id
             }
         });
+
+        return payments.map(p => p.toJSON());
     }, {
         query: t.Object({
             building_id: t.Optional(t.String()),

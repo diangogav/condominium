@@ -31,6 +31,3 @@ CREATE INDEX IF NOT EXISTS idx_petty_cash_transactions_created_at ON public.pett
 -- 4. Enable RLS (Assuming existing policies or standard practice)
 ALTER TABLE public.petty_cash_fund ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.petty_cash_transactions ENABLE ROW LEVEL SECURITY;
-
--- Note: Policies should be defined according to the project's security model.
--- For example, allowing Admin/Board access based on profiles table.

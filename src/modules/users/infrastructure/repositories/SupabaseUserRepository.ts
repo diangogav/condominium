@@ -9,7 +9,9 @@ export class SupabaseUserRepository implements IUserRepository {
     private toDomain(data: any): User {
         const units = data.profile_units?.map((u: any) => new UserUnit({
             unit_id: u.unit_id,
+            unit_name: u.units?.name,
             building_id: u.units?.building_id,
+            building_name: u.units?.buildings?.name,
             building_role: u.building_role || 'resident',
             is_primary: u.is_primary
         })) || [];
@@ -68,7 +70,7 @@ export class SupabaseUserRepository implements IUserRepository {
         // Fetch profile with units
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(name, building_id, buildings(name)))')
             .eq('id', id)
             .single();
 
@@ -83,7 +85,7 @@ export class SupabaseUserRepository implements IUserRepository {
     async findByEmail(email: string): Promise<User | null> {
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(name, building_id, buildings(name)))')
             .eq('email', email)
             .single();
 
@@ -101,7 +103,7 @@ export class SupabaseUserRepository implements IUserRepository {
             .from('profiles')
             .update(persistenceData)
             .eq('id', user.id)
-            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))')
+            .select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(name, building_id, buildings(name)))')
             .single();
 
         if (error) {
@@ -140,11 +142,7 @@ export class SupabaseUserRepository implements IUserRepository {
 
     async findAll(filters?: FindAllUsersFilters): Promise<User[]> {
         // Base query with joins
-        // We use !inner only when filtering to enforce existence, otherwise likely left join (default in select)
-        // But we want to start with a query that allows filtering if needed.
-        // Actually, simpler to construct the query based on filters.
-
-        let query = supabase.from('profiles').select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(building_id))');
+        let query = supabase.from('profiles').select('id, email, name, phone, role, status, created_at, updated_at, profile_units(*, units(name, building_id, buildings(name)))');
 
         if (filters?.role) {
             query = query.eq('role', filters.role);
@@ -157,7 +155,7 @@ export class SupabaseUserRepository implements IUserRepository {
             // Filter users who have a specific unit assignment
             // Need !inner on profile_units to filter the parent profile
             query = supabase.from('profiles')
-                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units(building_id))')
+                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units!inner(name, building_id, buildings(name)))')
                 .eq('profile_units.unit_id', filters.unit_id);
         }
 
@@ -165,7 +163,7 @@ export class SupabaseUserRepository implements IUserRepository {
             // Filter users who have a unit in specific building
             // Need !inner on profile_units AND units
             query = supabase.from('profiles')
-                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units!inner(building_id))')
+                .select('id, email, name, phone, role, status, created_at, updated_at, profile_units!inner(*, units!inner(name, building_id, buildings!inner(name)))')
                 .eq('profile_units.units.building_id', filters.building_id);
         }
 

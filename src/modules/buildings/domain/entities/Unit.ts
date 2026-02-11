@@ -4,8 +4,8 @@ export interface UnitProps {
     id: string;
     building_id: string;
     name: string;
-    floor?: string;
-    aliquot?: number;
+    floor?: string | null;
+    aliquot?: number | null;
     created_at?: Date;
     updated_at?: Date;
 }
@@ -27,8 +27,8 @@ export class Unit {
     get id(): string { return this.props.id; }
     get building_id(): string { return this.props.building_id; }
     get name(): string { return this.props.name; }
-    get floor(): string | undefined { return this.props.floor; }
-    get aliquot(): number { return this.props.aliquot || 0; }
+    get floor(): string | null { return this.props.floor ?? null; }
+    get aliquot(): number | null { return this.props.aliquot ?? null; }
     get created_at(): Date { return this.props.created_at || new Date(); }
     get updated_at(): Date { return this.props.updated_at || new Date(); }
 
@@ -45,8 +45,8 @@ export class Unit {
             id: this.props.id,
             building_id: this.props.building_id,
             name: this.props.name,
-            floor: this.props.floor,
-            aliquot: this.props.aliquot,
+            floor: this.props.floor ?? null,
+            aliquot: this.props.aliquot ?? null,
             created_at: this.props.created_at,
             updated_at: this.props.updated_at
         };
