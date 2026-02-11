@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { BatchCreateUnits } from '@/modules/buildings/application/use-cases/BatchCreateUnits';
 import { IUnitRepository, IBuildingRepository } from '@/modules/buildings/domain/repository';
 import { Unit } from '@/modules/buildings/domain/entities/Unit';
@@ -11,7 +11,7 @@ class MockUnitRepository implements IUnitRepository {
     async findByBuildingId(id: string) { return this.units.filter(u => u.building_id === id); }
     async findById(id: string) { return this.units.find(u => u.id === id) || null; }
     async update(unit: Unit) { return unit; }
-    async delete(id: string) { }
+    async delete(_id: string) { }
     async createBatch(units: Unit[]) {
         this.units.push(...units);
         return units;
@@ -28,7 +28,7 @@ class MockBuildingRepository implements IBuildingRepository {
     async create(b: Building) { return b; }
     async findAll() { return []; }
     async update(b: Building) { return b; }
-    async delete(id: string) { }
+    async delete(_id: string) { }
 }
 
 describe('BatchCreateUnits Use Case', () => {

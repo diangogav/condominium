@@ -3,7 +3,7 @@ import { UpdateUser } from '@/modules/users/application/use-cases/UpdateUser';
 import { MockUserRepository } from '../mocks';
 import { User } from '@/modules/users/domain/entities/User';
 import { UserRole, UserStatus } from '@/core/domain/enums';
-import { ForbiddenError, NotFoundError } from '@/core/errors';
+import { ForbiddenError } from '@/core/errors';
 
 describe('UpdateUser Use Case', () => {
     let repo: MockUserRepository;

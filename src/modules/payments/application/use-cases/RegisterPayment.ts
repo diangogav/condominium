@@ -1,6 +1,4 @@
-import { IPaymentRepository } from '../../domain/repository';
 // Note: Payment repo is likely in modules/payments/domain/repository
-import { IUserRepository } from '@/modules/users/domain/repository';
 import { Payment } from '../../domain/entities/Payment';
 import { PaymentAllocation } from '@/modules/billing/domain/entities/PaymentAllocation';
 import { PaymentStatus, PaymentMethod } from '@/core/domain/enums';
@@ -11,7 +9,7 @@ import { DomainError } from '@/core/errors';
 // However, RegisterPaymentUseCase crosses domains (Payments -> Billing).
 // It should probably reside in Payments module but use Billing repositories.
 
-import { IInvoiceRepository as IBillingInvoiceRepository, IPaymentAllocationRepository as IBillingAllocationRepository } from '@/modules/billing/domain/repository';
+import { IPaymentAllocationRepository as IBillingAllocationRepository } from '@/modules/billing/domain/repository';
 // And PaymentRepository from local module
 import { IPaymentRepository as ILocalPaymentRepository } from '../../domain/repository';
 
@@ -36,7 +34,6 @@ export interface RegisterPaymentDTO {
 export class RegisterPayment {
     constructor(
         private paymentRepository: ILocalPaymentRepository,
-        private invoiceRepository: IBillingInvoiceRepository,
         private paymentAllocationRepository: IBillingAllocationRepository
     ) { }
 
