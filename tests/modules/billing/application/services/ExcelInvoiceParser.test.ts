@@ -21,7 +21,8 @@ describe('ExcelJSInvoiceParser', () => {
         sheet.addRow(['', '', '', 2026, '01/27/2026', '7172', 19.03]);
 
         const buffer = await workbook.xlsx.writeBuffer();
-        const results = await parser.parse(buffer as any);
+        const result = await parser.parse(buffer as any);
+        const results = result.invoices;
 
         expect(results).toHaveLength(4);
         expect(results[0]).toMatchObject({

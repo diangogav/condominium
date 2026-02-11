@@ -31,8 +31,8 @@ const InvoiceSchema = t.Object({
     unit_id: t.String(),
     amount: t.Number(),
     period: t.String(),
-    description: t.Nullable(t.String()),
-    receipt_number: t.Nullable(t.String()),
+    description: t.Optional(t.Union([t.String(), t.Null()])),
+    receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
     status: t.String(),
     paid_amount: t.Nullable(t.Number()),
     due_date: t.Any(),
@@ -48,9 +48,9 @@ const AdminInvoiceSchema = t.Object({
     period: t.String(),
     year: t.Number(),
     month: t.Number(),
-    issue_date: t.Any(),
-    receipt_number: t.Optional(t.String()),
-    created_at: t.Any(),
+    issue_date: t.String(),
+    receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
+    created_at: t.String(),
     unit: t.Object({
         id: t.Optional(t.String()),
         name: t.Optional(t.String())
@@ -330,6 +330,37 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
         detail: {
             tags: ['Billing'],
             summary: 'Get all payments for a specific invoice',
+            security: [{ BearerAuth: [] }]
+        }
+    })
+    // 4.5. Get Invoices for a Payment
+    .get('/payments/:id/invoices', async ({ params, profile }) => {
+        // Auth: Admin or Board
+        if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin/Board can see payment allocations');
+        }
+
+        return await allocationRepository.findInvoicesByPaymentId(params.id);
+    }, {
+        response: t.Array(t.Object({
+            id: t.String(),
+            unit_id: t.String(),
+            amount: t.Number(),
+            period: t.String(),
+            description: t.Optional(t.String()),
+            receipt_number: t.Optional(t.String()),
+            status: t.String(),
+            paid_amount: t.Optional(t.Number()),
+            due_date: t.Optional(t.Any()),
+            created_at: t.Optional(t.Any()),
+            updated_at: t.Optional(t.Any()),
+            allocated_amount: t.Number(),
+            allocation_id: t.String(),
+            allocated_at: t.Any()
+        })),
+        detail: {
+            tags: ['Billing'],
+            summary: 'Get all invoices for a specific payment',
             security: [{ BearerAuth: [] }]
         }
     })

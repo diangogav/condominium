@@ -76,4 +76,22 @@ export class SupabasePaymentAllocationRepository implements IPaymentAllocationRe
             };
         });
     }
+
+    async findInvoicesByPaymentId(paymentId: string): Promise<any[]> {
+        const { data, error } = await supabase
+            .from('payment_allocations')
+            .select('*, invoices(*)')
+            .eq('payment_id', paymentId);
+
+        if (error) throw new DomainError('Error fetching invoices for payment', 'DB_ERROR', 500);
+
+        return (data || []).map((allocation: any) => {
+            return {
+                ...allocation.invoices,
+                allocated_amount: allocation.amount, // The part of this payment that went to this invoice
+                allocation_id: allocation.id,
+                allocated_at: allocation.created_at
+            };
+        });
+    }
 }
