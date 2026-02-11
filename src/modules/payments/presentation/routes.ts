@@ -20,11 +20,23 @@ const storageService = new StorageService();
 // New Repo for allocations
 import { SupabaseInvoiceRepository } from '@/modules/billing/infrastructure/repositories/SupabaseInvoiceRepository';
 import { SupabasePaymentAllocationRepository } from '@/modules/billing/infrastructure/repositories/SupabasePaymentAllocationRepository';
+import { SupabaseUnitRepository } from '@/modules/buildings/infrastructure/repositories/SupabaseUnitRepository';
+import { SupabasePettyCashRepository } from '@/modules/petty-cash/infrastructure/repositories/SupabasePettyCashRepository';
+
 const invoiceRepo = new SupabaseInvoiceRepository();
 const allocationRepo = new SupabasePaymentAllocationRepository();
+const unitRepo = new SupabaseUnitRepository();
+const pettyCashRepo = new SupabasePettyCashRepository();
 const getUnitBalance = new GetUnitBalance(invoiceRepo, allocationRepo);
 
-const approvePayment = new ApprovePayment(paymentRepo, userRepo);
+const approvePayment = new ApprovePayment(
+    paymentRepo,
+    userRepo,
+    allocationRepo,
+    invoiceRepo,
+    unitRepo,
+    pettyCashRepo
+);
 const getUnitPayments = new GetUnitPayments(paymentRepo, userRepo);
 const getUnitPaymentSummary = new GetUnitPaymentSummary(paymentRepo, userRepo, getUnitBalance);
 const getAllPayments = new GetAllPayments(paymentRepo, userRepo);

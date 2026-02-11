@@ -1,4 +1,4 @@
-import { DomainError } from '@/core/errors';
+import { DomainError, ValidationError, NotFoundError } from '../../../../core/errors';
 
 export enum InvoiceStatus {
     PENDING = 'PENDING',
@@ -9,7 +9,8 @@ export enum InvoiceStatus {
 export enum InvoiceType {
     EXPENSE = 'EXPENSE',
     DEBT = 'DEBT',
-    EXTRAORDINARY = 'EXTRAORDINARY'
+    EXTRAORDINARY = 'EXTRAORDINARY',
+    PETTY_CASH_REPLENISHMENT = 'PETTY_CASH_REPLENISHMENT'
 }
 
 export interface InvoiceProps {

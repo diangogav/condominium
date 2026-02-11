@@ -4,8 +4,10 @@ import { GetPettyCashBalance } from '../application/use-cases/GetPettyCashBalanc
 import { GetPettyCashHistory } from '../application/use-cases/GetPettyCashHistory';
 import { RegisterPettyCashIncome } from '../application/use-cases/RegisterPettyCashIncome';
 import { RegisterPettyCashExpense } from '../application/use-cases/RegisterPettyCashExpense';
+import { SupabaseInvoiceRepository } from '@/modules/billing/infrastructure/repositories/SupabaseInvoiceRepository';
+import { SupabaseUnitRepository } from '@/modules/buildings/infrastructure/repositories/SupabaseUnitRepository';
 import { StorageService } from '@/infrastructure/storage';
-import { supabase } from '@/infrastructure/supabase';
+import { supabase, supabaseAdmin } from '@/infrastructure/supabase';
 import { UnauthorizedError, ForbiddenError } from '@/core/errors';
 import { UserRole, PettyCashTransactionType, PettyCashCategory } from '@/core/domain/enums';
 
@@ -16,7 +18,11 @@ const storageService = new StorageService();
 const getBalance = new GetPettyCashBalance(pettyCashRepo);
 const getHistory = new GetPettyCashHistory(pettyCashRepo);
 const registerIncome = new RegisterPettyCashIncome(pettyCashRepo);
-const registerExpense = new RegisterPettyCashExpense(pettyCashRepo);
+const registerExpense = new RegisterPettyCashExpense(
+    pettyCashRepo,
+    new SupabaseUnitRepository(),
+    new SupabaseInvoiceRepository()
+);
 
 const PettyCashFundSchema = t.Object({
     id: t.String(),
@@ -34,8 +40,8 @@ const PettyCashTransactionSchema = t.Object({
     description: t.String(),
     category: t.String(),
     created_by: t.String(),
-    evidence_url: t.Optional(t.String()),
-    created_at: t.Optional(t.Any())
+    evidence_url: t.Nullable(t.Optional(t.String())),
+    created_at: t.Nullable(t.Optional(t.Any()))
 });
 
 export const pettyCashRoutes = new Elysia({ prefix: '/petty-cash' })
@@ -48,7 +54,7 @@ export const pettyCashRoutes = new Elysia({ prefix: '/petty-cash' })
         if (error || !user) throw new UnauthorizedError('Invalid or expired token');
 
         // Fetch user profile to check role
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('role')
             .eq('id', user.id)

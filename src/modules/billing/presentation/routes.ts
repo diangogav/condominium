@@ -34,10 +34,10 @@ const InvoiceSchema = t.Object({
     description: t.Optional(t.Union([t.String(), t.Null()])),
     receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
     status: t.String(),
-    paid_amount: t.Optional(t.Number()),
-    due_date: t.Optional(t.Any()), // Date or string
-    created_at: t.Optional(t.Any()),
-    updated_at: t.Optional(t.Any())
+    paid_amount: t.Nullable(t.Number()),
+    due_date: t.Any(),
+    created_at: t.Any(),
+    updated_at: t.Any()
 });
 
 const AdminInvoiceSchema = t.Object({
@@ -92,6 +92,7 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     .derive(async ({ request }) => {
         const authHeader = request.headers.get('Authorization');
         if (!authHeader) throw new UnauthorizedError('Authentication required');
+
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error } = await supabase.auth.getUser(token);
         if (error || !user) throw new UnauthorizedError('Invalid or expired token');
@@ -102,13 +103,25 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
             .select('id, email, name, role, status, profile_units(unit_id)')
             .eq('id', user.id)
             .single();
+
         if (!profile) throw new UnauthorizedError('Profile not found');
 
         return { user, profile };
     })
     // 0. Get All Invoices (Admin/Board Filtered)
     .get('/invoices', async ({ query, profile }) => {
-        if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+        // Allow Admin/Board OR Resident (if filtering by their own unit)
+        if (profile.role === UserRole.RESIDENT) {
+            if (!query.unit_id) {
+                throw new UnauthorizedError('Residents must specify a unit_id');
+            }
+            // Verify ownership
+            const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === query.unit_id);
+
+            if (!hasAccess) {
+                throw new UnauthorizedError('You do not have access to this unit invoices');
+            }
+        } else if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
             throw new UnauthorizedError('Only Admin/Board can list all invoices');
         }
 
@@ -251,13 +264,11 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     // 2. Get Unit Balance
     .get('/units/:id/balance', async ({ params, profile }) => {
         // Auth: Admin, Board (same building), or Resident (same unit)
-        // For simplicity:
         if (profile.role === UserRole.RESIDENT) {
-            // Check if user is linked to this unit.
-            // Ideally we check profile_units, but simple check against primary URL param:
-            // "params.id" should match one of user's units.
-            // For now, assume if they know the ID and have a valid token, we return.
-            // A more strict check would be "await userRepo.getUserUnits(userId)"
+            const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === params.id);
+            if (!hasAccess) {
+                throw new UnauthorizedError('Unauthorized: You do not have access to this unit balance');
+            }
         }
 
         return await getUnitBalance.execute(params.id);
