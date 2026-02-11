@@ -64,27 +64,27 @@ export class ApprovePayment {
         const allocations = await this.allocationRepo.findByPaymentId(paymentId);
         for (const alloc of allocations) {
             const invoice = await this.invoiceRepo.findById(alloc.invoice_id);
-            if (invoice?.type === InvoiceType.PETTY_CASH_REPLENISHMENT) {
-                const unit = await this.unitRepo.findById(invoice.unit_id);
-                if (unit) {
-                    const fund = await this.pettyCashRepo.findFundByBuildingId(unit.building_id);
-                    if (fund) {
-                        fund.addIncome(alloc.amount);
-                        await this.pettyCashRepo.saveFund(fund);
+            if (invoice?.type !== InvoiceType.PETTY_CASH_REPLENISHMENT) continue;
 
-                        const transaction = new PettyCashTransaction(
-                            '',
-                            fund.id,
-                            PettyCashTransactionType.INCOME,
-                            alloc.amount,
-                            `Reposición por pago de factura: ${invoice.description}`,
-                            'Otro' as any, // Or a specific category
-                            approverId
-                        );
-                        await this.pettyCashRepo.saveTransaction(transaction);
-                    }
-                }
-            }
+            const unit = await this.unitRepo.findById(invoice.unit_id);
+            if (!unit) continue;
+
+            const fund = await this.pettyCashRepo.findFundByBuildingId(unit.building_id);
+            if (!fund) continue;
+
+            fund.addIncome(alloc.amount);
+            await this.pettyCashRepo.saveFund(fund);
+
+            const transaction = new PettyCashTransaction(
+                '',
+                fund.id,
+                PettyCashTransactionType.INCOME,
+                alloc.amount,
+                `Reposición por pago de factura: ${invoice.description}`,
+                'Otro' as any, // Or a specific category
+                approverId
+            );
+            await this.pettyCashRepo.saveTransaction(transaction);
         }
     }
 

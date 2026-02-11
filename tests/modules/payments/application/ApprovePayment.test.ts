@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { ApprovePayment } from '@/modules/payments/application/use-cases/ApprovePayment';
 import { MockPaymentRepository } from '../mocks';
 import { MockUserRepository } from '../../users/mocks';
@@ -9,12 +9,31 @@ import { PaymentMethod, PaymentStatus, UserRole, UserStatus } from '@/core/domai
 describe('ApprovePayment Use Case', () => {
     let paymentRepo: MockPaymentRepository;
     let userRepo: MockUserRepository;
+    let allocationRepo: any;
+    let invoiceRepo: any;
+    let unitRepo: any;
+    let pettyCashRepo: any;
     let approvePayment: ApprovePayment;
 
     beforeEach(() => {
         paymentRepo = new MockPaymentRepository();
         userRepo = new MockUserRepository();
-        approvePayment = new ApprovePayment(paymentRepo, userRepo);
+        allocationRepo = { findByPaymentId: mock(async () => []) };
+        invoiceRepo = { findById: mock(async () => null) };
+        unitRepo = { findById: mock(async () => null) };
+        pettyCashRepo = {
+            findFundByBuildingId: mock(async () => null),
+            saveFund: mock(async (f: any) => f),
+            saveTransaction: mock(async (t: any) => t)
+        };
+        approvePayment = new ApprovePayment(
+            paymentRepo,
+            userRepo,
+            allocationRepo,
+            invoiceRepo,
+            unitRepo,
+            pettyCashRepo
+        );
     });
 
     it('should approve payment when requested by admin', async () => {
