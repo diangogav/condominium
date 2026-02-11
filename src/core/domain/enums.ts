@@ -35,10 +35,10 @@ export enum PettyCashTransactionType {
 }
 
 export enum PettyCashCategory {
-    REPAIR = 'Reparación',
-    CLEANING = 'Limpieza',
-    EMERGENCY = 'Emergencia',
-    OFFICE = 'Oficina',
-    UTILITIES = 'Servicios',
-    OTHER = 'Otro'
+    REPAIR = 'REPAIR',
+    CLEANING = 'CLEANING',
+    EMERGENCY = 'EMERGENCY',
+    OFFICE = 'OFFICE',
+    UTILITIES = 'UTILITIES',
+    OTHER = 'OTHER'
 }
