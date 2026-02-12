@@ -2,13 +2,15 @@ import { UserRole, UserStatus } from '@/core/domain/enums';
 import { DomainError } from '@/core/errors';
 
 import { UserUnit } from './UserUnit';
+import { BuildingRole } from './BuildingRole';
 
 export interface UserProps {
     id: string;
     email: string;
     name: string;
     phone?: string;
-    units?: UserUnit[]; // New multi-unit support
+    units?: UserUnit[];
+    buildingRoles?: BuildingRole[]; // New building-level roles support
     role: UserRole;
     status: UserStatus;
     created_at?: Date;
@@ -26,6 +28,9 @@ export class User {
         if (!props.units) {
             this.props.units = [];
         }
+        if (!props.buildingRoles) {
+            this.props.buildingRoles = [];
+        }
     }
 
     get id(): string { return this.props.id; }
@@ -35,6 +40,7 @@ export class User {
 
     // Multi-apartment support
     get units(): UserUnit[] { return this.props.units || []; }
+    get buildingRoles(): BuildingRole[] { return this.props.buildingRoles || []; }
 
     // Helper to get primary unit ID if needed for backward compat in logic
     get primaryUnitId(): string | undefined {
@@ -77,7 +83,7 @@ export class User {
         return this.props.status === UserStatus.ACTIVE;
     }
 
-    updateProfile(data: Partial<Omit<UserProps, 'id' | 'email' | 'role' | 'status' | 'created_at' | 'updated_at' | 'units'>>): void {
+    updateProfile(data: Partial<Omit<UserProps, 'id' | 'email' | 'role' | 'status' | 'created_at' | 'updated_at' | 'units' | 'buildingRoles'>>): void {
         this.props = {
             ...this.props,
             ...data,
@@ -95,12 +101,17 @@ export class User {
         this.props.updated_at = new Date();
     }
 
+    setBuildingRoles(roles: BuildingRole[]) {
+        this.props.buildingRoles = roles;
+        this.props.updated_at = new Date();
+    }
+
     /**
      * Check if user is board member in a specific building
      */
     isBoardInBuilding(buildingId: string): boolean {
-        return this.units.some(u =>
-            u.building_id === buildingId && u.isBoardInBuilding()
+        return this.buildingRoles.some(r =>
+            r.building_id === buildingId && r.isBoardMember()
         );
     }
 
@@ -108,11 +119,10 @@ export class User {
      * Get all buildings where user is board
      */
     getBuildingsWhereBoard(): string[] {
-        const buildingIds = this.units
-            .filter(u => u.isBoardInBuilding())
-            .map(u => u.building_id!)
+        const buildingIds = this.buildingRoles
+            .filter(r => r.isBoardMember())
+            .map(r => r.building_id)
             .filter(Boolean);
-        // Use Set to ensure uniqueness (user might have multiple units in same building)
         return Array.from(new Set(buildingIds));
     }
 
@@ -120,11 +130,15 @@ export class User {
      * Check if user has any board role in any building
      */
     isBoardMemberAnywhere(): boolean {
-        return this.units.some(u => u.isBoardInBuilding());
+        return this.buildingRoles.some(r => r.isBoardMember());
     }
 
     toJSON(): UserProps {
-        return this.props;
+        return {
+            ...this.props,
+            units: this.units.map(u => u.toJSON()),
+            buildingRoles: this.buildingRoles.map(r => r.toJSON())
+        } as any;
     }
 
     toString(): string {

@@ -1,63 +1,68 @@
-import { IUserRepository } from '@/modules/users/domain/repository';
-import { IAuthRepository } from '@/modules/auth/domain/repository';
-import { User, UserProps } from '../../domain/entities/User';
+import { User } from '../../domain/entities/User';
 import { UserUnit } from '../../domain/entities/UserUnit';
+import { BuildingRole } from '../../domain/entities/BuildingRole';
+import { IUserRepository } from '../../domain/repository';
+import { IAuthRepository } from '@/modules/auth/domain/repository';
 import { UserRole, UserStatus } from '@/core/domain/enums';
-import { ForbiddenError, UnauthorizedError } from '@/core/errors';
+import { DomainError } from '@/core/errors';
 
-interface CreateUserRequest {
-    requesterId: string;
+export interface CreateUserDTO {
     email: string;
-    password: string;
     name: string;
-    role: UserRole;
-    building_id: string; // Required for all users in this context (even admin usually belongs to system, but let's assume mandatory for now based on app logic)
-    unit_id?: string;
     phone?: string;
+    role: UserRole;
+    unit_id?: string;
+    building_id?: string; // Optional building for initial role
+    password?: string;    // Required for auth creation
 }
 
 export class CreateUser {
     constructor(
-        private userRepo: IUserRepository,
-        private authRepo: IAuthRepository
+        private userRepository: IUserRepository,
+        private authRepository: IAuthRepository
     ) { }
 
-    async execute(request: CreateUserRequest): Promise<User> {
-        // 1. Verify Requester is Admin
-        const requester = await this.userRepo.findById(request.requesterId);
-        if (!requester) {
-            throw new UnauthorizedError('User not found');
+    async execute(data: CreateUserDTO): Promise<User> {
+        const existing = await this.userRepository.findByEmail(data.email);
+        if (existing) {
+            throw new DomainError('User already exists', 'USER_EXISTS', 400);
         }
 
-        if (!requester.isAdmin()) {
-            throw new ForbiddenError('Only admins can create users');
-        }
+        // 1. Create Auth User
+        const password = data.password || Math.random().toString(36).slice(-10);
+        const authUser = await this.authRepository.createUser(data.email, password);
 
-        // 2. Create Auth User (without login)
-        const authUser = await this.authRepo.createUser(request.email, request.password);
-
-        // 3. Create Profile
-        const newUser = new User({
+        // 2. Create Profile
+        const user = new User({
             id: authUser.id,
-            email: request.email,
-            name: request.name,
-            role: request.role,
+            email: data.email,
+            name: data.name,
+            phone: data.phone,
+            role: data.role,
             status: UserStatus.ACTIVE, // Created by admin = auto active
-            phone: request.phone
         });
 
-        // Assign unit if provided
-        if (request.unit_id) {
-            const buildingRole = request.role === UserRole.BOARD ? 'board' : 'resident';
-
-            newUser.setUnits([new UserUnit({
-                unit_id: request.unit_id,
-                building_id: request.building_id,
-                building_role: buildingRole,
-                is_primary: true
-            })]);
+        // If unit_id is provided, associate it
+        if (data.unit_id) {
+            user.setUnits([
+                new UserUnit({
+                    unit_id: data.unit_id,
+                    is_primary: true,
+                    building_id: data.building_id
+                })
+            ]);
         }
 
-        return await this.userRepo.create(newUser);
+        // If building_id is provided and role is BOARD, add building role
+        if (data.building_id && (data.role === UserRole.BOARD)) {
+            user.setBuildingRoles([
+                new BuildingRole({
+                    building_id: data.building_id,
+                    role: 'board'
+                })
+            ]);
+        }
+
+        return await this.userRepository.create(user);
     }
 }

@@ -1,28 +1,33 @@
 import { describe, expect, test } from "bun:test";
 import { User } from "@/modules/users/domain/entities/User";
 import { UserUnit } from "@/modules/users/domain/entities/UserUnit";
+import { BuildingRole } from "@/modules/users/domain/entities/BuildingRole";
 import { UserRole, UserStatus } from "@/core/domain/enums";
 
 describe("User - Multi-Building Board Permissions", () => {
-    test("User can be board in Building A and resident in Building B", () => {
+    test("User can be board in Building A and resident (no specific role) in Building B", () => {
         const user = new User({
             id: "user-1",
             email: "john@example.com",
             name: "John Doe",
-            role: UserRole.BOARD,  // Global role (legacy)
+            role: UserRole.BOARD,
             status: UserStatus.ACTIVE,
             units: [
                 new UserUnit({
                     unit_id: "unit-a1",
                     building_id: "building-a",
-                    building_role: "board",
                     is_primary: true
                 }),
                 new UserUnit({
                     unit_id: "unit-b2",
                     building_id: "building-b",
-                    building_role: "resident",
                     is_primary: false
+                })
+            ],
+            buildingRoles: [
+                new BuildingRole({
+                    building_id: "building-a",
+                    role: "board"
                 })
             ]
         });
@@ -38,7 +43,7 @@ describe("User - Multi-Building Board Permissions", () => {
         expect(boardBuildings.length).toBe(1);
     });
 
-    test("User with multiple units in same building - board in all", () => {
+    test("User with multiple units in same building - board via detached role", () => {
         const user = new User({
             id: "user-2",
             email: "jane@example.com",
@@ -49,14 +54,18 @@ describe("User - Multi-Building Board Permissions", () => {
                 new UserUnit({
                     unit_id: "unit-a1",
                     building_id: "building-a",
-                    building_role: "board",
                     is_primary: true
                 }),
                 new UserUnit({
                     unit_id: "unit-a2",
                     building_id: "building-a",
-                    building_role: "board",
                     is_primary: false
+                })
+            ],
+            buildingRoles: [
+                new BuildingRole({
+                    building_id: "building-a",
+                    role: "board"
                 })
             ]
         });
@@ -76,10 +85,10 @@ describe("User - Multi-Building Board Permissions", () => {
                 new UserUnit({
                     unit_id: "unit-c1",
                     building_id: "building-c",
-                    building_role: "resident",
                     is_primary: true
                 })
-            ]
+            ],
+            buildingRoles: []
         });
 
         expect(user.isBoardInBuilding("building-c")).toBe(false);
@@ -87,49 +96,34 @@ describe("User - Multi-Building Board Permissions", () => {
         expect(user.getBuildingsWhereBoard()).toEqual([]);
     });
 
-    test("Admin user without units has no building-specific board permissions", () => {
+    test("Admin user without units can have building-specific board permissions if assigned", () => {
         const user = new User({
             id: "admin-1",
             email: "admin@example.com",
             name: "System Admin",
             role: UserRole.ADMIN,
             status: UserStatus.ACTIVE,
-            units: []
+            units: [],
+            buildingRoles: [
+                new BuildingRole({
+                    building_id: "building-x",
+                    role: "board"
+                })
+            ]
         });
 
-        expect(user.isBoardInBuilding("any-building")).toBe(false);
-        expect(user.isBoardMemberAnywhere()).toBe(false);
+        expect(user.isBoardInBuilding("building-x")).toBe(true);
+        expect(user.isBoardMemberAnywhere()).toBe(true);
         expect(user.isAdmin()).toBe(true);
     });
 
-    test("UserUnit.isBoardInBuilding() method", () => {
-        const boardUnit = new UserUnit({
-            unit_id: "unit-1",
+    test("BuildingRole entity", () => {
+        const boardRole = new BuildingRole({
             building_id: "building-1",
-            building_role: "board",
-            is_primary: true
+            role: "board"
         });
 
-        const residentUnit = new UserUnit({
-            unit_id: "unit-2",
-            building_id: "building-2",
-            building_role: "resident",
-            is_primary: false
-        });
-
-        expect(boardUnit.isBoardInBuilding()).toBe(true);
-        expect(residentUnit.isBoardInBuilding()).toBe(false);
-    });
-
-    test("building_role defaults to resident if not specified", () => {
-        const unit = new UserUnit({
-            unit_id: "unit-1",
-            building_id: "building-1",
-            building_role: "resident",
-            is_primary: true
-        });
-
-        expect(unit.building_role).toBe("resident");
-        expect(unit.isBoardInBuilding()).toBe(false);
+        expect(boardRole.building_id).toBe("building-1");
+        expect(boardRole.role).toBe("board");
     });
 });

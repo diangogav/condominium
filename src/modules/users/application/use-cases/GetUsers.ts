@@ -35,12 +35,24 @@ export class GetUsers {
 
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {
-            const validBuildings = requester.units.map(u => u.building_id).filter((id): id is string => !!id);
+            const unitBuildings = requester.units.map(u => u.building_id);
+            const roleBuildings = requester.buildingRoles.map(r => r.building_id);
+            const validBuildings = Array.from(new Set([...unitBuildings, ...roleBuildings]))
+                .filter((id): id is string => !!id);
+
             if (validBuildings.length === 0) {
-                // Should not happen for a valid board member
                 return [];
             }
-            filters.building_id = validBuildings[0]; // Default to first building
+
+            // If board member requests a specific building, check if they have access to it
+            if (request.filters?.building_id) {
+                if (!validBuildings.includes(request.filters.building_id)) {
+                    throw new ForbiddenError('You do not have access to this building');
+                }
+                filters.building_id = request.filters.building_id;
+            } else {
+                filters.building_id = validBuildings[0]; // Default to first building
+            }
         } else {
             // Admin or other (if expanded) - allow filtering by building if requested
             if (request.filters?.building_id) {

@@ -3,6 +3,7 @@ import { AssignUnitToUser } from "@/modules/users/application/use-cases/AssignUn
 import { User } from "@/modules/users/domain/entities/User";
 import { UserRole, UserStatus } from "@/core/domain/enums";
 import { createMockUserRepository } from "../../mocks/repositories";
+import { UserUnit } from "@/modules/users/domain/entities/UserUnit";
 
 describe("AssignUnitToUser Use Case", () => {
     let mockRepo: ReturnType<typeof createMockUserRepository>;
@@ -28,48 +29,66 @@ describe("AssignUnitToUser Use Case", () => {
         await useCase.execute({
             userId: "user-1",
             unitId: "unit-A",
-            building_role: "owner",
+            buildingId: "building-1",
             isPrimary: true
         });
 
         expect(mockRepo.update).toHaveBeenCalled();
         expect(user.units.length).toBe(1);
         expect(user.units[0].unit_id).toBe("unit-A");
-        expect(user.units[0].building_role).toBe("owner");
         expect(user.units[0].is_primary).toBe(true);
     });
 
-    test("should update role if unit already assigned", async () => {
+    test("should update primary status if unit already assigned", async () => {
         const user = new User({
             id: "user-1",
             email: "test@example.com",
             name: "Test User",
             role: UserRole.RESIDENT,
-            status: UserStatus.ACTIVE
+            status: UserStatus.ACTIVE,
+            units: [
+                new UserUnit({
+                    unit_id: "unit-A",
+                    building_id: "building-1",
+                    is_primary: false
+                })
+            ]
         });
-        // Pre-assign
-        user.setUnits([{
-            unit_id: "unit-A",
-            role: "resident",
-            building_role: "resident",
-            is_primary: false,
-            isOwner: () => false,
-            isBoardInBuilding: () => false,
-            toJSON: () => ({})
-        } as any]);
 
         mockRepo.findById = mock(async () => user);
 
         await useCase.execute({
             userId: "user-1",
             unitId: "unit-A",
-            building_role: "owner",
+            buildingId: "building-1",
             isPrimary: true
         });
 
         expect(user.units.length).toBe(1);
-        expect(user.units[0].building_role).toBe("owner");
         expect(user.units[0].is_primary).toBe(true);
+    });
+
+    test("should assign building role if provided", async () => {
+        const user = new User({
+            id: "user-1",
+            email: "test@example.com",
+            name: "Test User",
+            role: UserRole.BOARD,
+            status: UserStatus.ACTIVE
+        });
+
+        mockRepo.findById = mock(async () => user);
+
+        await useCase.execute({
+            userId: "user-1",
+            unitId: "unit-A",
+            buildingId: "building-1",
+            buildingRole: "board"
+        });
+
+        expect(user.buildingRoles.length).toBe(1);
+        expect(user.buildingRoles[0].building_id).toBe("building-1");
+        expect(user.buildingRoles[0].role).toBe("board");
     });
 
     test("should throw error if user not found", async () => {
@@ -78,8 +97,7 @@ describe("AssignUnitToUser Use Case", () => {
         expect(useCase.execute({
             userId: "missing",
             unitId: "unit-A",
-            building_role: "owner",
-            isPrimary: true
+            buildingId: "building-1"
         })).rejects.toThrow("User not found");
     });
 });
