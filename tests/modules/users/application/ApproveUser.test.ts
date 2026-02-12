@@ -1,7 +1,9 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'bun:test';
 import { ApproveUser } from '@/modules/users/application/use-cases/ApproveUser';
 import { IUserRepository } from '@/modules/users/domain/repository';
 import { User } from '@/modules/users/domain/entities/User';
+import { UserUnit } from '@/modules/users/domain/entities/UserUnit';
+import { BuildingRole } from '@/modules/users/domain/entities/BuildingRole';
 import { UserRole, UserStatus } from '@/core/domain/enums';
 import { ForbiddenError, NotFoundError } from '@/core/errors';
 
@@ -16,7 +18,7 @@ class MockUserRepository implements IUserRepository {
     async findById(id: string): Promise<User | null> {
         return this.users.get(id) || null;
     }
-    async findByEmail(email: string): Promise<User | null> {
+    async findByEmail(_email: string): Promise<User | null> {
         return null;
     }
     async update(user: User): Promise<User> {
@@ -44,7 +46,7 @@ describe('ApproveUser Use Case', () => {
         const u = new User({
             id, email: 'res@test.com', name: 'Res', role: UserRole.RESIDENT, status: UserStatus.PENDING, created_at: new Date(), updated_at: new Date()
         });
-        u.setUnits([{ unit_id: 'u1', building_id: buildingId, building_role: 'resident', is_primary: true } as any]);
+        u.setUnits([new UserUnit({ unit_id: 'u1', building_id: buildingId, is_primary: true })]);
         return u;
     };
 
@@ -52,7 +54,7 @@ describe('ApproveUser Use Case', () => {
         const u = new User({
             id, email: 'board@test.com', name: 'Board', role: UserRole.BOARD, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()
         });
-        u.setUnits([{ unit_id: 'u2', building_id: buildingId, building_role: 'owner', is_primary: true } as any]);
+        u.setBuildingRoles([new BuildingRole({ building_id: buildingId, role: 'board' })]);
         return u;
     };
 
@@ -111,5 +113,36 @@ describe('ApproveUser Use Case', () => {
 
         expect(useCase.execute({ targetUserId: 'nonexistent', approverId: 'admin1' }))
             .rejects.toThrow(NotFoundError);
+    });
+
+    it('should approve user when board member has no units but has building role', async () => {
+        const board = new User({
+            id: 'board_no_units', email: 'board2@test.com', name: 'Board No Units', role: UserRole.BOARD, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()
+        });
+        board.setBuildingRoles([new BuildingRole({ building_id: 'buildingA', role: 'board' })]);
+
+        const resident = createResident('res1', 'buildingA');
+        await repo.create(board);
+        await repo.create(resident);
+
+        await useCase.execute({ targetUserId: 'res1', approverId: 'board_no_units' });
+
+        const updated = await repo.findById('res1');
+        expect(updated?.status).toBe(UserStatus.ACTIVE);
+    });
+
+    it('should fail when board member has a unit but no building role', async () => {
+        const board = new User({
+            id: 'board_with_unit_only', email: 'board3@test.com', name: 'Board Unit Only', role: UserRole.BOARD, status: UserStatus.ACTIVE, created_at: new Date(), updated_at: new Date()
+        });
+        // Has unit in buildingA, but NO buildingRole
+        board.setUnits([new UserUnit({ unit_id: 'u3', building_id: 'buildingA', is_primary: true })]);
+
+        const resident = createResident('res1', 'buildingA');
+        await repo.create(board);
+        await repo.create(resident);
+
+        expect(useCase.execute({ targetUserId: 'res1', approverId: 'board_with_unit_only' }))
+            .rejects.toThrow(ForbiddenError);
     });
 });
