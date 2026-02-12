@@ -1,8 +1,7 @@
 import { IPaymentRepository } from '../../domain/repository';
 import { IUserRepository } from '@/modules/users/domain/repository';
-import { SolvencyStatus, PaymentStatus } from '@/core/domain/enums';
+import { SolvencyStatus } from '@/core/domain/enums';
 import { DomainError, NotFoundError } from '@/core/errors';
-import { Payment } from '../../domain/entities/Payment';
 
 export interface PaymentSummaryDTO {
     solvency_status: SolvencyStatus;
@@ -48,7 +47,7 @@ export class GetUnitPaymentSummary {
         const balance = await this.getUnitBalance.execute(unit.unit_id);
 
         // Get all payments for the unit (apartment) in the current year
-        const payments = await this.paymentRepo.findByUnit(unit.building_id, unit.unit_id, currentYear);
+        const payments = await this.paymentRepo.findByUnit(unit.unit_id, currentYear);
         const approvedPayments = payments.filter(p => p.isApproved());
 
         // Calculate pending periods based on Balance (Invoices)

@@ -40,7 +40,7 @@ export class GetUnitPayments {
 
         const allPayments: Payment[] = [];
         for (const unit of validUnits) {
-            const payments = await this.paymentRepo.findByUnit(unit.building_id!, unit.unit_id!, year);
+            const payments = await this.paymentRepo.findByUnit(unit.unit_id!, year);
             allPayments.push(...payments);
         }
 

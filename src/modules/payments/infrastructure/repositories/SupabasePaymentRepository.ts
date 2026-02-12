@@ -99,64 +99,41 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             .order('payment_date', { ascending: false });
 
         if (year) {
-            const startDate = `${year}-01-01`;
-            const endDate = `${year}-12-31`;
-            query = query.gte('payment_date', startDate).lte('payment_date', endDate);
+            query = this.applyYearFilter(query, year);
         }
 
         const { data, error } = await query;
-
-        if (error) {
-            throw new DomainError('Error fetching payments', 'DB_ERROR', 500);
-        }
+        if (error) throw new DomainError('Error fetching payments', 'DB_ERROR', 500);
 
         return data.map(this.toDomain);
     }
 
-    async findByUnit(buildingId: string, unitId: string, year?: number): Promise<Payment[]> {
+    async findByUnit(unitId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
             .select(SELECT_QUERY)
             .eq('unit_id', unitId)
-            // If building_id is null in DB but unit matches, we still want it (legacy/bug fix)
-            // or we strictly enforce it. Given the bug just fixed, let's allow matching just by unit_id
-            // if we are sure the unit_id is unique across buildings (which it is, uuid).
-            // However, to be safe and clean, we eq('unit_id', unitId) and then filter or or.
             .order('payment_date', { ascending: false });
 
-        // If we want to be strict but allow the recently created null building_ids:
-        // query = query.or(`building_id.eq.${buildingId},building_id.is.null`);
-        // But eq('unit_id', unitId) should be enough if unit_id is UUID.
-
-
         if (year) {
-            const startDate = `${year}-01-01`;
-            const endDate = `${year}-12-31`;
-            query = query.gte('payment_date', startDate).lte('payment_date', endDate);
+            query = this.applyYearFilter(query, year);
         }
 
         const { data, error } = await query;
-
-        if (error) {
-            throw new DomainError('Error fetching payments for unit', 'DB_ERROR', 500);
-        }
+        if (error) throw new DomainError('Error fetching payments for unit', 'DB_ERROR', 500);
 
         return data.map(this.toDomain);
     }
 
     async update(payment: Payment): Promise<Payment> {
-        const persistenceData = this.toPersistence(payment);
-
         const { data, error } = await supabase
             .from('payments')
-            .update(persistenceData)
+            .update(this.toPersistence(payment))
             .eq('id', payment.id)
             .select(SELECT_QUERY)
             .single();
 
-        if (error) {
-            throw new DomainError('Error updating payment', 'DB_ERROR', 500);
-        }
+        if (error) throw new DomainError('Error updating payment', 'DB_ERROR', 500);
 
         return this.toDomain(data);
     }
@@ -167,32 +144,29 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             .select(SELECT_QUERY)
             .order('created_at', { ascending: false });
 
-        if (filters?.building_id) {
-            query = query.eq('building_id', filters.building_id);
-        }
-        if (filters?.status) {
-            query = query.eq('status', filters.status);
-        }
-        /* Legacy period filter removed in favor of allocations */
-        if (filters?.year) {
-            const startDate = `${filters.year}-01-01`;
-            const endDate = `${filters.year}-12-31`;
-            query = query.gte('payment_date', startDate).lte('payment_date', endDate);
-        }
-        if (filters?.user_id) {
-            query = query.eq('user_id', filters.user_id);
-        }
-        if (filters?.unit_id) {
-            query = query.eq('unit_id', filters.unit_id);
+        if (filters) {
+            query = this.applyFilters(query, filters);
         }
 
         const { data, error } = await query;
-
-        if (error) {
-            throw new DomainError('Error fetching payments', 'DB_ERROR', 500);
-        }
+        if (error) throw new DomainError('Error fetching payments', 'DB_ERROR', 500);
 
         return data.map(this.toDomain);
+    }
+
+    private applyFilters(query: any, filters: FindAllPaymentsFilters): any {
+        if (filters.building_id) query = query.eq('building_id', filters.building_id);
+        if (filters.status) query = query.eq('status', filters.status);
+        if (filters.user_id) query = query.eq('user_id', filters.user_id);
+        if (filters.unit_id) query = query.eq('unit_id', filters.unit_id);
+        if (filters.year) query = this.applyYearFilter(query, filters.year);
+        return query;
+    }
+
+    private applyYearFilter(query: any, year: number): any {
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
+        return query.gte('payment_date', startDate).lte('payment_date', endDate);
     }
 
     async delete(id: string): Promise<void> {

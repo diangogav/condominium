@@ -37,23 +37,41 @@ export class RegisterPayment {
     ) { }
 
     async execute(dto: RegisterPaymentDTO): Promise<Payment> {
-        if (dto.amount <= 0) {
+        this.validateAmount(dto.amount);
+        this.validateAllocations(dto);
+
+        const payment = this.initializePayment(dto);
+        const createdPayment = await this.paymentRepository.create(payment);
+
+        await this.createAllocations(createdPayment.id, dto.allocations);
+
+        return createdPayment;
+    }
+
+    private validateAmount(amount: number): void {
+        if (amount <= 0) {
             throw new DomainError('Payment amount must be positive', 'VALIDATION_ERROR', 400);
         }
+    }
 
-        // Validate allocations sum vs payment amount
+    private validateAllocations(dto: RegisterPaymentDTO): void {
+        if (!dto.allocations) return;
+
         let allocatedAmount = 0;
-        if (dto.allocations) {
-            for (const alloc of dto.allocations) {
-                if (alloc.amount <= 0) throw new DomainError('Allocation amount must be positive', 'VALIDATION_ERROR', 400);
-                allocatedAmount += alloc.amount;
+        for (const alloc of dto.allocations) {
+            if (alloc.amount <= 0) {
+                throw new DomainError('Allocation amount must be positive', 'VALIDATION_ERROR', 400);
             }
-            if (allocatedAmount > dto.amount) {
-                throw new DomainError('Allocated amount cannot exceed payment amount', 'VALIDATION_ERROR', 400);
-            }
+            allocatedAmount += alloc.amount;
         }
 
-        const payment = new Payment({
+        if (allocatedAmount > dto.amount) {
+            throw new DomainError('Allocated amount cannot exceed payment amount', 'VALIDATION_ERROR', 400);
+        }
+    }
+
+    private initializePayment(dto: RegisterPaymentDTO): Payment {
+        return new Payment({
             id: crypto.randomUUID(),
             user_id: dto.userId,
             unit_id: dto.unitId,
@@ -64,26 +82,22 @@ export class RegisterPayment {
             reference: dto.reference,
             bank: dto.bank,
             proof_url: dto.proofUrl,
-            status: PaymentStatus.PENDING, // Or APPROVED if auto-approve
+            status: PaymentStatus.PENDING,
             notes: dto.notes
         });
+    }
 
-        const createdPayment = await this.paymentRepository.create(payment);
+    private async createAllocations(paymentId: string, allocations?: Array<{ invoiceId: string, amount: number }>): Promise<void> {
+        if (!allocations) return;
 
-        if (dto.allocations) {
-            for (const alloc of dto.allocations) {
-                // Verify invoice exists and check balance?
-                // For now, trust the ID. Repository creates allocation.
-                const allocation = new PaymentAllocation({
-                    id: crypto.randomUUID(),
-                    payment_id: createdPayment.id,
-                    invoice_id: alloc.invoiceId,
-                    amount: alloc.amount
-                });
-                await this.paymentAllocationRepository.create(allocation);
-            }
+        for (const alloc of allocations) {
+            const allocation = new PaymentAllocation({
+                id: crypto.randomUUID(),
+                payment_id: paymentId,
+                invoice_id: alloc.invoiceId,
+                amount: alloc.amount
+            });
+            await this.paymentAllocationRepository.create(allocation);
         }
-
-        return createdPayment;
     }
 }

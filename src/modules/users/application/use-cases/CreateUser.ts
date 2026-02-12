@@ -22,47 +22,59 @@ export class CreateUser {
         private authRepository: IAuthRepository
     ) { }
 
-    async execute(data: CreateUserDTO): Promise<User> {
-        const existing = await this.userRepository.findByEmail(data.email);
+    async execute(dto: CreateUserDTO): Promise<User> {
+        await this.ensureUserDoesNotExist(dto.email);
+
+        const authUserId = await this.createAuthUser(dto);
+        const user = this.initializeUser(authUserId, dto);
+
+        this.applyInitialAssignments(user, dto);
+
+        return await this.userRepository.create(user);
+    }
+
+    private async ensureUserDoesNotExist(email: string): Promise<void> {
+        const existing = await this.userRepository.findByEmail(email);
         if (existing) {
             throw new DomainError('User already exists', 'USER_EXISTS', 400);
         }
+    }
 
-        // 1. Create Auth User
-        const password = data.password || Math.random().toString(36).slice(-10);
-        const authUser = await this.authRepository.createUser(data.email, password);
+    private async createAuthUser(dto: CreateUserDTO): Promise<string> {
+        const password = dto.password || Math.random().toString(36).slice(-10);
+        const authUser = await this.authRepository.createUser(dto.email, password);
+        return authUser.id;
+    }
 
-        // 2. Create Profile
-        const user = new User({
-            id: authUser.id,
-            email: data.email,
-            name: data.name,
-            phone: data.phone,
-            role: data.role,
-            status: UserStatus.ACTIVE, // Created by admin = auto active
+    private initializeUser(id: string, dto: CreateUserDTO): User {
+        return new User({
+            id,
+            email: dto.email,
+            name: dto.name,
+            phone: dto.phone,
+            role: dto.role,
+            status: UserStatus.ACTIVE,
         });
+    }
 
-        // If unit_id is provided, associate it
-        if (data.unit_id) {
+    private applyInitialAssignments(user: User, dto: CreateUserDTO): void {
+        if (dto.unit_id) {
             user.setUnits([
                 new UserUnit({
-                    unit_id: data.unit_id,
+                    unit_id: dto.unit_id,
                     is_primary: true,
-                    building_id: data.building_id
+                    building_id: dto.building_id
                 })
             ]);
         }
 
-        // If building_id is provided and role is BOARD, add building role
-        if (data.building_id && (data.role === UserRole.BOARD)) {
+        if (dto.building_id && dto.role === UserRole.BOARD) {
             user.setBuildingRoles([
                 new BuildingRole({
-                    building_id: data.building_id,
+                    building_id: dto.building_id,
                     role: 'board'
                 })
             ]);
         }
-
-        return await this.userRepository.create(user);
     }
 }

@@ -15,44 +15,44 @@ export interface AssignUnitDTO {
 export class AssignUnitToUser {
     constructor(private userRepository: IUserRepository) { }
 
-    async execute(data: AssignUnitDTO): Promise<void> {
-        const user = await this.userRepository.findById(data.userId);
+    async execute(dto: AssignUnitDTO): Promise<void> {
+        const user = await this.userRepository.findById(dto.userId);
         if (!user) {
             throw new DomainError('User not found', 'USER_NOT_FOUND', 404);
         }
 
-        this.applyUnitAssignment(user, data);
-        this.applyBuildingRole(user, data);
+        this.applyUnitAssignment(user, dto);
+        this.applyBuildingRole(user, dto);
 
         await this.userRepository.update(user);
     }
 
-    private applyUnitAssignment(user: User, data: AssignUnitDTO): void {
-        const existingUnit = user.units.find(u => u.unit_id === data.unitId);
+    private applyUnitAssignment(user: User, dto: AssignUnitDTO): void {
+        const existingUnit = user.units.find(u => u.unit_id === dto.unitId);
 
         if (!existingUnit) {
-            this.addNewUnit(user, data);
+            this.addNewUnit(user, dto);
             return;
         }
 
-        if (data.isPrimary && !existingUnit.is_primary) {
-            this.promoteToPrimary(user, data.unitId);
+        if (dto.isPrimary && !existingUnit.is_primary) {
+            this.promoteToPrimary(user, dto.unitId);
         }
     }
 
-    private addNewUnit(user: User, data: AssignUnitDTO): void {
+    private addNewUnit(user: User, dto: AssignUnitDTO): void {
         let currentUnits = user.units;
 
-        if (data.isPrimary) {
+        if (dto.isPrimary) {
             currentUnits = currentUnits.map(u =>
                 new UserUnit({ ...u.toJSON(), is_primary: false })
             );
         }
 
         const newUnit = new UserUnit({
-            unit_id: data.unitId,
-            building_id: data.buildingId,
-            is_primary: !!data.isPrimary
+            unit_id: dto.unitId,
+            building_id: dto.buildingId,
+            is_primary: !!dto.isPrimary
         });
 
         user.setUnits([...currentUnits, newUnit]);
@@ -68,26 +68,25 @@ export class AssignUnitToUser {
         user.setUnits(updatedUnits);
     }
 
-    private applyBuildingRole(user: User, data: AssignUnitDTO): void {
-        if (!data.buildingRole) return;
+    private applyBuildingRole(user: User, dto: AssignUnitDTO): void {
+        if (!dto.buildingRole) return;
 
-        const alreadyHasRole = user.buildingRoles.some(r =>
-            r.building_id === data.buildingId && r.role === data.buildingRole
+        const hasThisExactRole = user.buildingRoles.some(r =>
+            r.building_id === dto.buildingId && r.role === dto.buildingRole
         );
 
-        if (alreadyHasRole) return;
+        if (hasThisExactRole) return;
 
-        // Ensure we don't duplicate roles for the same building/role pair
-        // (though 'some' check above covers basic case)
-        const otherRoles = user.buildingRoles.filter(r =>
-            !(r.building_id === data.buildingId && r.role === data.buildingRole)
+        // One role per building: remove old one if exists
+        const otherBuildingsRoles = user.buildingRoles.filter(r =>
+            r.building_id !== dto.buildingId
         );
 
         const newBuildingRole = new BuildingRole({
-            building_id: data.buildingId,
-            role: data.buildingRole
+            building_id: dto.buildingId,
+            role: dto.buildingRole
         });
 
-        user.setBuildingRoles([...otherRoles, newBuildingRole]);
+        user.setBuildingRoles([...otherBuildingsRoles, newBuildingRole]);
     }
 }
