@@ -34,10 +34,10 @@ const InvoiceSchema = t.Object({
     description: t.Optional(t.Union([t.String(), t.Null()])),
     receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
     status: t.String(),
-    paid_amount: t.Nullable(t.Number()),
-    due_date: t.Any(),
-    created_at: t.Any(),
-    updated_at: t.Any()
+    paid_amount: t.Optional(t.Union([t.Number(), t.Null()])),
+    due_date: t.Optional(t.Any()),
+    created_at: t.Optional(t.Any()),
+    updated_at: t.Optional(t.Any())
 });
 
 const AdminInvoiceSchema = t.Object({
@@ -50,7 +50,7 @@ const AdminInvoiceSchema = t.Object({
     month: t.Number(),
     issue_date: t.String(),
     receipt_number: t.Optional(t.Union([t.String(), t.Null()])),
-    created_at: t.String(),
+    created_at: t.Optional(t.String()),
     unit: t.Object({
         id: t.Optional(t.String()),
         name: t.Optional(t.String())
@@ -69,7 +69,7 @@ const AllocationSchema = t.Object({
     payment_id: t.String(),
     invoice_id: t.String(),
     amount: t.Number(),
-    created_at: t.Any()
+    created_at: t.Optional(t.Any())
 });
 
 const BalanceDetailSchema = t.Object({
@@ -263,12 +263,14 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     })
     // 2. Get Unit Balance
     .get('/units/:id/balance', async ({ params, profile }) => {
-        // Auth: Admin, Board (same building), or Resident (same unit)
+        // Auth: Admin, Board (any building for now, ideally same building), or Resident (same unit)
         if (profile.role === UserRole.RESIDENT) {
             const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === params.id);
             if (!hasAccess) {
                 throw new UnauthorizedError('Unauthorized: You do not have access to this unit balance');
             }
+        } else if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin, Board or the unit resident can see balance');
         }
 
         return await getUnitBalance.execute(params.id);
@@ -282,12 +284,14 @@ export const billingRoutes = new Elysia({ prefix: '/billing' })
     })
     // 3. Get All Unit Invoices
     .get('/units/:id/invoices', async ({ params, profile }) => {
-        // Auth: Admin or Resident (same unit)
-        if (profile.role !== UserRole.ADMIN) {
+        // Auth: Admin, Board or Resident (same unit)
+        if (profile.role === UserRole.RESIDENT) {
             const hasAccess = profile.profile_units?.some((u: { unit_id: string }) => u.unit_id === params.id);
             if (!hasAccess) {
                 throw new UnauthorizedError('Unauthorized: You do not have access to this unit invoices');
             }
+        } else if (profile.role !== UserRole.ADMIN && profile.role !== UserRole.BOARD) {
+            throw new UnauthorizedError('Only Admin, Board or the unit resident can see invoices');
         }
 
         const invoices = await getUnitInvoices.execute(params.id);

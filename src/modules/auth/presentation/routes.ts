@@ -21,8 +21,11 @@ const AuthResponse = t.Object({
         units: t.Array(t.Object({
             unit_id: t.String(),
             building_id: t.Optional(t.String()),
-            building_role: t.String(),
             is_primary: t.Boolean()
+        })),
+        buildingRoles: t.Array(t.Object({
+            building_id: t.String(),
+            role: t.String()
         }))
     })
 });
@@ -42,9 +45,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             user: {
                 ...session.user,
                 role: 'RESIDENT', // Default role for registration
-                units: [] // Newly registered users might not have loaded units in session yet, or we can map them if available.
-                // ideally: session.user.units.map(u => u.toJSON()) if they are loaded.
-                // For now, empty to satisfy schema as they are pending approval.
+                units: [],
+                buildingRoles: []
             }
         };
     }, {
@@ -72,7 +74,8 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
                 id: user.id,
                 email: user.email,
                 role: user.role,
-                units: user.units.map(u => u.toJSON())  // Include units
+                units: user.units.map(u => u.toJSON()),  // Include units
+                buildingRoles: user.buildingRoles.map(r => r.toJSON()) // Include detached roles
             }
         };
     }, {

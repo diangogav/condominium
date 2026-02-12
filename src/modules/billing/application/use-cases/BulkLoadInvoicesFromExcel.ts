@@ -26,38 +26,56 @@ export class BulkLoadInvoicesFromExcel {
     async execute(request: BulkLoadInvoicesRequest): Promise<void> {
         const { invoices, buildingId } = request;
 
-        // 1. Identify and create missing units
+        await this.ensureUnitsExist(invoices, buildingId);
+
+        const unitsMap = await this.getUnitsMap(buildingId);
+        const existingReceipts = await this.getExistingReceipts(buildingId);
+
+        const invoicesToCreate = this.mapToInvoices(invoices, unitsMap, existingReceipts);
+
+        if (invoicesToCreate.length > 0) {
+            await this.invoiceRepository.createBatch(invoicesToCreate);
+        }
+    }
+
+    private async ensureUnitsExist(invoices: ConfirmedInvoice[], buildingId: string): Promise<void> {
         const unitsToCreateNames = Array.from(new Set(
             invoices
                 .filter(inv => inv.status === 'TO_BE_CREATED')
                 .map(inv => inv.unitName)
         ));
 
-        const createdUnits: Unit[] = [];
-        if (unitsToCreateNames.length > 0) {
-            const unitsToCreate = unitsToCreateNames.map(name => new Unit({
-                id: crypto.randomUUID(),
-                building_id: buildingId,
-                name
-            }));
-            const bulkCreated = await this.unitRepository.createBatch(unitsToCreate);
-            createdUnits.push(...bulkCreated);
-        }
+        if (unitsToCreateNames.length === 0) return;
 
-        // 2. Fetch all current units for the building to get their IDs
+        const unitsToCreate = unitsToCreateNames.map(name => new Unit({
+            id: crypto.randomUUID(),
+            building_id: buildingId,
+            name
+        }));
+
+        await this.unitRepository.createBatch(unitsToCreate);
+    }
+
+    private async getUnitsMap(buildingId: string): Promise<Map<string, string>> {
         const allUnits = await this.unitRepository.findByBuildingId(buildingId);
-        const unitsMap = new Map(allUnits.map(u => [u.name.toLowerCase(), u.id]));
+        return new Map(allUnits.map(u => [u.name.toLowerCase(), u.id]));
+    }
 
-        // 3. Fetch existing invoices to avoid duplicates (idempotency)
+    private async getExistingReceipts(buildingId: string): Promise<Set<string>> {
         const existingInvoices = await this.invoiceRepository.findAll({ building_id: buildingId });
-        const existingReceipts = new Set(
+        return new Set(
             existingInvoices
                 .map(inv => inv.receipt_number)
                 .filter((r): r is string => !!r)
         );
+    }
 
-        // 4. Create Invoices (filter out already existing receipts)
-        const invoicesToCreate = invoices
+    private mapToInvoices(
+        invoices: ConfirmedInvoice[],
+        unitsMap: Map<string, string>,
+        existingReceipts: Set<string>
+    ): Invoice[] {
+        return invoices
             .filter(item => !existingReceipts.has(item.receiptNumber))
             .map(item => {
                 const unitId = unitsMap.get(item.unitName.toLowerCase());
@@ -77,9 +95,5 @@ export class BulkLoadInvoicesFromExcel {
                     description: `Carga inicial - Recibo ${item.receiptNumber}`
                 });
             });
-
-        if (invoicesToCreate.length > 0) {
-            await this.invoiceRepository.createBatch(invoicesToCreate);
-        }
     }
 }
