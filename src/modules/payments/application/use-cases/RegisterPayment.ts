@@ -24,7 +24,6 @@ export interface RegisterPaymentDTO {
     bank?: string;
     proofUrl?: string;
     notes?: string;
-    periods?: string[];
     allocations?: {
         invoiceId: string;
         amount: number;
@@ -66,8 +65,7 @@ export class RegisterPayment {
             bank: dto.bank,
             proof_url: dto.proofUrl,
             status: PaymentStatus.PENDING, // Or APPROVED if auto-approve
-            notes: dto.notes,
-            periods: dto.periods
+            notes: dto.notes
         });
 
         const createdPayment = await this.paymentRepository.create(payment);

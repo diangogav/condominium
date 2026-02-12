@@ -13,7 +13,6 @@ export interface ApprovePaymentDTO {
     paymentId: string;
     approverId: string;
     notes?: string;
-    periods?: string[];
 }
 
 export interface RejectPaymentDTO {
@@ -32,14 +31,10 @@ export class ApprovePayment {
         private pettyCashRepo: PettyCashRepository
     ) { }
 
-    async approve({ paymentId, approverId, notes, periods }: ApprovePaymentDTO): Promise<void> {
+    async approve({ paymentId, approverId, notes }: ApprovePaymentDTO): Promise<void> {
         const approver = await this.userRepo.findById(approverId);
         if (!approver) {
             throw new NotFoundError('Approver not found');
-        }
-
-        if (!approver.isAdmin() && !approver.isBoardMember()) {
-            throw new ForbiddenError('Only admins and board members can approve payments');
         }
 
         const payment = await this.paymentRepo.findById(paymentId);
@@ -47,17 +42,14 @@ export class ApprovePayment {
             throw new NotFoundError('Payment not found');
         }
 
-        // Board members can only approve payments from their building
-        if (approver.isBoardMember()) {
-            const hasAccess = approver.units.some(u => u.building_id === payment.building_id);
-            if (!hasAccess) {
-                // Determine if we need to strictly fail or if checking units is enough.
-                // If units array is empty on approver, they effectively "have no building".
+        // Check permissions
+        if (!approver.isAdmin()) {
+            if (!payment.building_id || !approver.isBoardInBuilding(payment.building_id)) {
                 throw new ForbiddenError('You can only approve payments from your building');
             }
         }
 
-        payment.approve(notes, periods);
+        payment.approve(approverId, notes);
         await this.paymentRepo.update(payment);
 
         // Replenish Petty Cash if any allocation is for a replenishment invoice
@@ -94,24 +86,19 @@ export class ApprovePayment {
             throw new NotFoundError('Approver not found');
         }
 
-        if (!approver.isAdmin() && !approver.isBoardMember()) {
-            throw new ForbiddenError('Only admins and board members can reject payments');
-        }
-
         const payment = await this.paymentRepo.findById(paymentId);
         if (!payment) {
             throw new NotFoundError('Payment not found');
         }
 
-        // Board members can only reject payments from their building
-        if (approver.isBoardMember()) {
-            const hasAccess = approver.units.some(u => u.building_id === payment.building_id);
-            if (!hasAccess) {
+        // Check permissions
+        if (!approver.isAdmin()) {
+            if (!payment.building_id || !approver.isBoardInBuilding(payment.building_id)) {
                 throw new ForbiddenError('You can only reject payments from your building');
             }
         }
 
-        payment.reject(notes);
+        payment.reject(approverId, notes);
         await this.paymentRepo.update(payment);
     }
 }

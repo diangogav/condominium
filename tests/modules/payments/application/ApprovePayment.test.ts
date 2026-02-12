@@ -3,6 +3,7 @@ import { ApprovePayment } from '@/modules/payments/application/use-cases/Approve
 import { MockPaymentRepository } from '../mocks';
 import { MockUserRepository } from '../../users/mocks';
 import { Payment } from '@/modules/payments/domain/entities/Payment';
+import { BuildingRole } from '@/modules/users/domain/entities/BuildingRole';
 import { User } from '@/modules/users/domain/entities/User';
 import { PaymentMethod, PaymentStatus, UserRole, UserStatus, PettyCashTransactionType, PettyCashCategory } from '@/core/domain/enums';
 import { IPaymentAllocationRepository, IInvoiceRepository } from '@/modules/billing/domain/repository';
@@ -104,7 +105,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
-        board.setUnits([{ unit_id: 'B1', building_id: 'building-1', building_role: 'board', is_primary: true } as any]);
+        board.setBuildingRoles([new BuildingRole({ building_id: 'building-1', role: UserRole.BOARD as any })]);
 
         const payment = new Payment({
             id: 'payment-1',
@@ -137,7 +138,7 @@ describe('ApprovePayment Use Case', () => {
             role: UserRole.BOARD,
             status: UserStatus.ACTIVE
         });
-        board.setUnits([{ unit_id: 'B1', building_id: 'building-2', building_role: 'board', is_primary: true } as any]);
+        board.setBuildingRoles([new BuildingRole({ building_id: 'building-2', role: UserRole.BOARD as any })]);
 
         const payment = new Payment({
             id: 'payment-1',

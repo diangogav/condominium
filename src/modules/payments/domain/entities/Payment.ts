@@ -11,15 +11,17 @@ export interface PaymentProps {
     bank?: string;
     proof_url?: string;
     status: PaymentStatus;
-    /**
-     * @deprecated Use allocations for accounting. This field is now informational for UI only.
-     */
-    periods?: string[]; // e.g., ["2024-03", "2024-04"]
     unit_id: string;
     notes?: string;
+    processed_by?: string; // profile_id of the person who approved/rejected
+    processed_at?: Date;
     created_at?: Date;
     updated_at?: Date;
     user?: {
+        id: string;
+        name: string;
+    };
+    processor?: {
         id: string;
         name: string;
     };
@@ -45,12 +47,14 @@ export class Payment {
     get bank(): string | undefined { return this.props.bank; }
     get proof_url(): string | undefined { return this.props.proof_url; }
     get status(): PaymentStatus { return this.props.status; }
-    get periods(): string[] | undefined { return this.props.periods; }
     get unit_id(): string { return this.props.unit_id; }
     get notes(): string | undefined { return this.props.notes; }
+    get processed_by(): string | undefined { return this.props.processed_by; }
+    get processed_at(): Date | undefined { return this.props.processed_at; }
     get created_at(): Date { return this.props.created_at!; }
     get updated_at(): Date { return this.props.updated_at!; }
     get user(): { id: string, name: string } | undefined { return this.props.user; }
+    get processor(): { id: string, name: string } | undefined { return this.props.processor; }
 
     isPending(): boolean {
         return this.props.status === PaymentStatus.PENDING;
@@ -64,19 +68,20 @@ export class Payment {
         return this.props.status === PaymentStatus.REJECTED;
     }
 
-    approve(notes?: string, overriddenPeriods?: string[]): void {
+    approve(processorId: string, notes?: string): void {
         if (this.props.status === PaymentStatus.APPROVED) return;
         this.props.status = PaymentStatus.APPROVED;
+        this.props.processed_by = processorId;
+        this.props.processed_at = new Date();
         if (notes) this.props.notes = notes;
-        if (overriddenPeriods && overriddenPeriods.length > 0) {
-            this.props.periods = overriddenPeriods;
-        }
         this.props.updated_at = new Date();
     }
 
-    reject(notes?: string): void {
+    reject(processorId: string, notes?: string): void {
         if (this.props.status === PaymentStatus.REJECTED) return;
         this.props.status = PaymentStatus.REJECTED;
+        this.props.processed_by = processorId;
+        this.props.processed_at = new Date();
         if (notes) this.props.notes = notes;
         this.props.updated_at = new Date();
     }

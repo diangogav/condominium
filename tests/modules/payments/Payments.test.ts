@@ -19,7 +19,7 @@ describe("Payments Use Cases", () => {
 
     describe("RegisterPayment", () => {
         test("should register a payment without allocation", async () => {
-            const useCase = new RegisterPayment(mockPaymentRepo, mockInvoiceRepo, mockAllocRepo);
+            const useCase = new RegisterPayment(mockPaymentRepo, mockAllocRepo);
 
             const result = await useCase.execute({
                 userId: "user-1",
@@ -35,7 +35,7 @@ describe("Payments Use Cases", () => {
         });
 
         test("should register payment with allocations", async () => {
-            const useCase = new RegisterPayment(mockPaymentRepo, mockInvoiceRepo, mockAllocRepo);
+            const useCase = new RegisterPayment(mockPaymentRepo, mockAllocRepo);
 
             // Mock payment creation to return an ID
             mockPaymentRepo.create = mock(async (p) => {
@@ -55,7 +55,7 @@ describe("Payments Use Cases", () => {
         });
 
         test("should throw if allocation exceeds payment", async () => {
-            const useCase = new RegisterPayment(mockPaymentRepo, mockInvoiceRepo, mockAllocRepo);
+            const useCase = new RegisterPayment(mockPaymentRepo, mockAllocRepo);
 
             expect(useCase.execute({
                 userId: "user-1",

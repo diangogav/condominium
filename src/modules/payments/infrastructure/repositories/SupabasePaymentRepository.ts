@@ -4,6 +4,8 @@ import { supabaseAdmin as supabase } from '@/infrastructure/supabase';
 import { DomainError } from '@/core/errors';
 import { PaymentStatus, PaymentMethod } from '@/core/domain/enums';
 
+const SELECT_QUERY = '*, user:profiles!user_id(id, name), processor:profiles!processed_by(id, name)';
+
 export class SupabasePaymentRepository implements IPaymentRepository {
     private toDomain(data: any): Payment {
         const props: PaymentProps = {
@@ -17,14 +19,19 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             bank: data.bank,
             proof_url: data.proof_url,
             status: data.status as PaymentStatus,
-            periods: data.periods,
+            processed_by: data.processed_by,
+            processed_at: data.processed_at ? new Date(data.processed_at) : undefined,
             unit_id: data.unit_id,
             notes: data.notes,
             created_at: new Date(data.created_at),
             updated_at: new Date(data.updated_at),
-            user: data.profiles ? {
-                id: data.profiles.id,
-                name: data.profiles.name
+            user: data.user ? {
+                id: data.user.id,
+                name: data.user.name
+            } : undefined,
+            processor: data.processor ? {
+                id: data.processor.id,
+                name: data.processor.name
             } : undefined
         };
         return new Payment(props);
@@ -42,7 +49,8 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             bank: payment.bank,
             proof_url: payment.proof_url,
             status: payment.status,
-            periods: payment.periods,
+            processed_by: payment.processed_by,
+            processed_at: payment.processed_at,
             unit_id: payment.unit_id,
             notes: payment.notes,
             updated_at: payment.updated_at,
@@ -58,7 +66,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         const { data, error } = await supabase
             .from('payments')
             .insert(persistenceData)
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .single();
 
         if (error) {
@@ -71,7 +79,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findById(id: string): Promise<Payment | null> {
         const { data, error } = await supabase
             .from('payments')
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .eq('id', id)
             .single();
 
@@ -86,7 +94,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findByUserId(userId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .eq('user_id', userId)
             .order('payment_date', { ascending: false });
 
@@ -108,7 +116,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findByUnit(buildingId: string, unitId: string, year?: number): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .eq('unit_id', unitId)
             // If building_id is null in DB but unit matches, we still want it (legacy/bug fix)
             // or we strictly enforce it. Given the bug just fixed, let's allow matching just by unit_id
@@ -143,7 +151,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
             .from('payments')
             .update(persistenceData)
             .eq('id', payment.id)
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .single();
 
         if (error) {
@@ -156,7 +164,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
     async findAll(filters?: FindAllPaymentsFilters): Promise<Payment[]> {
         let query = supabase
             .from('payments')
-            .select('*, profiles(id, name)')
+            .select(SELECT_QUERY)
             .order('created_at', { ascending: false });
 
         if (filters?.building_id) {
@@ -165,10 +173,7 @@ export class SupabasePaymentRepository implements IPaymentRepository {
         if (filters?.status) {
             query = query.eq('status', filters.status);
         }
-        if (filters?.period) {
-            // Check if periods array contains the requested period
-            query = query.contains('periods', [filters.period]);
-        }
+        /* Legacy period filter removed in favor of allocations */
         if (filters?.year) {
             const startDate = `${filters.year}-01-01`;
             const endDate = `${filters.year}-12-31`;

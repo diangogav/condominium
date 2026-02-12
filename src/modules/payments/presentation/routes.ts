@@ -43,7 +43,7 @@ const getAllPayments = new GetAllPayments(paymentRepo, userRepo);
 
 // Updated Creation Use Case
 import { RegisterPayment } from '../application/use-cases/RegisterPayment';
-const registerPayment = new RegisterPayment(paymentRepo, invoiceRepo, allocationRepo);
+const registerPayment = new RegisterPayment(paymentRepo, allocationRepo);
 
 const PaymentSchema = t.Object({
     id: t.String(),
@@ -58,14 +58,22 @@ const PaymentSchema = t.Object({
     building_id: t.Optional(t.String()),
     proof_url: t.Optional(t.String()),
     notes: t.Optional(t.String()),
-    periods: t.Optional(t.Array(t.String())),
+    processed_by: t.Optional(t.Union([t.String(), t.Null()])),
+    processed_at: t.Optional(t.Union([t.Any(), t.Null()])),
     allocations: t.Optional(t.Array(t.Any())),
     created_at: t.Optional(t.Any()),
     updated_at: t.Optional(t.Any()),
     user: t.Optional(t.Object({
         id: t.String(),
         name: t.String()
-    }))
+    })),
+    processor: t.Optional(t.Union([
+        t.Object({
+            id: t.String(),
+            name: t.String()
+        }),
+        t.Null()
+    ]))
 });
 
 const PaymentTransactionSchema = t.Object({
@@ -74,11 +82,19 @@ const PaymentTransactionSchema = t.Object({
     payment_date: t.String(),
     method: t.String(),
     status: t.String(),
-    periods: t.Optional(t.Array(t.String())),
+    processed_by: t.Optional(t.Union([t.String(), t.Null()])),
+    processed_at: t.Optional(t.Union([t.String(), t.Null()])),
     user: t.Optional(t.Object({
         id: t.String(),
         name: t.String()
-    }))
+    })),
+    processor: t.Optional(t.Union([
+        t.Object({
+            id: t.String(),
+            name: t.String()
+        }),
+        t.Null()
+    ]))
 });
 
 const PaymentSummarySchema = t.Object({
@@ -155,11 +171,13 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         if (userProfile.role === UserRole.ADMIN) return payment.toJSON();
 
         // 2. Board can see payments for their building
-        // 2. Board can see payments for their building
-        // 2. Board can see payments for their building
         if (userProfile.role === UserRole.BOARD) {
-            const authorizedBuildings = userProfile.units.map(u => u.building_id);
-            if (authorizedBuildings.includes(payment.building_id)) {
+            const unitBuildings = userProfile.units.map(u => u.building_id);
+            const roleBuildings = userProfile.buildingRoles.map(r => r.building_id);
+            const authorizedBuildings = Array.from(new Set([...unitBuildings, ...roleBuildings]))
+                .filter((id): id is string => !!id);
+
+            if (payment.building_id && authorizedBuildings.includes(payment.building_id)) {
                 return payment.toJSON();
             }
         }
@@ -202,20 +220,6 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         const targetBuildingId = body.building_id || defaultBuildingId;
 
-        // Normalize periods to array (handle multipart JSON strings)
-        let periods: string[] | undefined;
-        if (body.periods) {
-            if (typeof body.periods === 'string' && body.periods.startsWith('[')) {
-                try {
-                    periods = JSON.parse(body.periods);
-                } catch {
-                    periods = [body.periods];
-                }
-            } else {
-                periods = Array.isArray(body.periods) ? body.periods : [body.periods];
-            }
-        }
-
         // Normalize allocations (handle multipart JSON strings)
         let allocations = body.allocations;
         if (typeof allocations === 'string' && (allocations as string).startsWith('[')) {
@@ -228,10 +232,8 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
 
         const payment = await registerPayment.execute({
             userId: userId,
-            unitId: body.unit_id || defaultUnitId || '', // Fallback
-            buildingId: targetBuildingId, // FIXED: use targetBuildingId instead of body.building_id
-            // If user has multiple units, frontend MUST send unit_id.
-            // The old flow relied on inferred or single unit.
+            unitId: body.unit_id || defaultUnitId || '',
+            buildingId: targetBuildingId,
             amount: typeof body.amount === 'string' ? parseFloat(body.amount) : body.amount,
             paymentDate: new Date(body.date),
             method: body.method as PaymentMethod,
@@ -239,14 +241,11 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             bank: body.bank,
             proofUrl: proofUrl,
             notes: body.notes,
-            periods: periods, // ADDED: pass periods to use case
             allocations: Array.isArray(allocations) ? allocations.map((a: any) => ({
                 invoiceId: a.invoice_id,
                 amount: typeof a.amount === 'string' ? parseFloat(a.amount) : a.amount
             })) : undefined
         });
-
-        console.log("payment.toJSON()", payment.toJSON())
 
         return payment.toJSON();
     }, {
@@ -261,22 +260,24 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             reference: t.Optional(t.String({ examples: ['123456789', 'REF-2024-001'] })),
             bank: t.Optional(t.String({ examples: ['Banco de Venezuela', 'Banesco', 'Mercantil'] })),
             proof_image: t.Optional(t.File()),
-            periods: t.Optional(t.Union([t.String(), t.Array(t.String())], { examples: ['2026-01', ['2026-01', '2026-02']] })),
             building_id: t.Optional(t.String()),
             unit_id: t.Optional(t.String()),
             notes: t.Optional(t.String()),
-            // Allocation Support
-            allocations: t.Optional(t.Array(t.Object({
-                invoice_id: t.String(),
-                amount: t.Number()
-            })))
+            // Allocation Support (can be string in multipart)
+            allocations: t.Optional(t.Union([
+                t.String(),
+                t.Array(t.Object({
+                    invoice_id: t.String(),
+                    amount: t.Number()
+                }))
+            ]))
         }),
         type: 'multipart/form-data',
         response: PaymentSchema,
         detail: {
             tags: ['Payments'],
             summary: 'Report a new payment',
-            description: 'Submit a payment report with optional proof image. Payment will be in PENDING status until approved.'
+            description: 'Submit a payment report with optional proof image and invoice allocations.'
         }
     })
     // Admin routes
@@ -286,7 +287,6 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             filters: {
                 building_id: query.building_id,
                 status: query.status,
-                period: query.period,
                 year: query.year,
                 unit_id: query.unit_id
             }
@@ -297,7 +297,6 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
         query: t.Object({
             building_id: t.Optional(t.String()),
             status: t.Optional(t.String()),
-            period: t.Optional(t.String()),
             year: t.Optional(t.String()),
             unit_id: t.Optional(t.String()),
         }),
@@ -314,8 +313,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
             await approvePayment.approve({
                 paymentId: params.id,
                 approverId: user.id,
-                notes: body.notes,
-                periods: body.approved_periods
+                notes: body.notes
             });
         } else if (body.status === 'REJECTED') {
             await approvePayment.reject({
@@ -329,8 +327,7 @@ export const paymentRoutes = new Elysia({ prefix: '/payments' })
     }, {
         body: t.Object({
             status: t.Union([t.Literal('PENDING'), t.Literal('APPROVED'), t.Literal('REJECTED')]),
-            notes: t.Optional(t.String()),
-            approved_periods: t.Optional(t.Array(t.String()))
+            notes: t.Optional(t.String())
         }),
         response: SuccessResponse,
         detail: {

@@ -38,33 +38,31 @@ export class GetAllPayments {
         if (request.filters?.year) filters.year = parseInt(request.filters.year);
         if (request.filters?.unit_id) filters.unit_id = request.filters.unit_id;
 
+        // Admin or Board - allow filtering by building if requested
+        if (request.filters?.building_id) {
+            filters.building_id = request.filters.building_id;
+        }
+
         // Enforce building scope for Board members
         if (requester.isBoardMember()) {
-            const validBuildingIds = requester.units.map(u => u.building_id).filter((id): id is string => !!id);
+            const unitBuildings = requester.units.map(u => u.building_id);
+            const roleBuildings = requester.buildingRoles.map(r => r.building_id);
+            const validBuildings = Array.from(new Set([...unitBuildings, ...roleBuildings]))
+                .filter((id): id is string => !!id);
 
-            if (validBuildingIds.length === 0) {
+            if (validBuildings.length === 0) {
                 return [];
             }
 
             // If specific building requested, validate access
             if (filters.building_id) {
-                if (!validBuildingIds.includes(filters.building_id)) {
-                    // For listing, maybe just return empty if filters don't match permissions?
-                    // Or throw forbidden. Let's return empty to be safe/standard for list filters.
+                if (!validBuildings.includes(filters.building_id)) {
+                    // For listing, if board member requests building they don't have access to, return empty
                     return [];
                 }
             } else {
-                // If no building specified, and we can only filter by one in the repo (assuming),
-                // we might default to the first one. 
-                // Ideally repo should support 'in' queries.
-                // For now, let's use the first one if not specified.
-                filters.building_id = validBuildingIds[0];
-            }
-            // Note: This logic assumes 1 building filter. 
-        } else {
-            // Admin - allow filtering by building if requested
-            if (request.filters?.building_id) {
-                filters.building_id = request.filters.building_id;
+                // If no building specified, default to first building they have access to
+                filters.building_id = validBuildings[0];
             }
         }
 

@@ -13,7 +13,6 @@ describe('Payment Entity', () => {
             method: PaymentMethod.PAGO_MOVIL,
             proof_url: 'http://example.com/proof.jpg',
             status: PaymentStatus.PENDING,
-            periods: ['2024-03'],
             unit_id: 'A1',
             notes: 'Test payment'
         };
@@ -25,7 +24,6 @@ describe('Payment Entity', () => {
         expect(payment.amount).toBe(100);
         expect(payment.proof_url).toBe(props.proof_url);
         expect(payment.status).toBe(props.status);
-        expect(payment.periods).toEqual(props.periods);
         expect(payment.notes).toBe(props.notes);
         expect(payment.reference).toBeUndefined();
         expect(payment.bank).toBeUndefined();
@@ -58,9 +56,11 @@ describe('Payment Entity', () => {
             unit_id: 'A1'
         });
 
-        payment.approve('Approved by admin');
+        payment.approve('admin-1', 'Approved by admin');
 
         expect(payment.status).toBe(PaymentStatus.APPROVED);
+        expect(payment.processed_by).toBe('admin-1');
+        expect(payment.processed_at).toBeDefined();
         expect(payment.notes).toBe('Approved by admin');
         expect(payment.isApproved()).toBe(true);
     });
@@ -76,7 +76,7 @@ describe('Payment Entity', () => {
             unit_id: 'A1'
         });
 
-        payment.approve();
+        payment.approve('admin-1');
 
         expect(payment.status).toBe(PaymentStatus.APPROVED);
     });
@@ -92,9 +92,11 @@ describe('Payment Entity', () => {
             unit_id: 'A1'
         });
 
-        payment.reject('Invalid proof');
+        payment.reject('admin-1', 'Invalid proof');
 
         expect(payment.status).toBe(PaymentStatus.REJECTED);
+        expect(payment.processed_by).toBe('admin-1');
+        expect(payment.processed_at).toBeDefined();
         expect(payment.notes).toBe('Invalid proof');
         expect(payment.isRejected()).toBe(true);
     });
